@@ -161,10 +161,11 @@ io.on("connection", (socket) => {
         game_data.clients[socket.id].position.y +=game_data.clients[socket.id].move_speed*((data.mouse_position.y-(data.hc/2))/(data.hc/2));
       }
     }
-    //game_data.clients[socket.id].position.x+=1
-    //game_data.clients[socket.id].position.y+=0
-    io.emit("move", game_data);
   });
+  socket.on("give_to_get_data", (data) => {
+    socket.emit("move", game_data);
+  });
+
   socket.on("in_game", (data) => {
     game_data.clients[socket.id].in_game = data;
   });

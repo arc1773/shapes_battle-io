@@ -128,6 +128,7 @@ function draw() {
 }
 
 function play() {
+  give_to_get_data();
   //send_collision_info();
   resizeCanvas();
   send_new_position();
@@ -148,6 +149,11 @@ canvas.addEventListener("mousemove", (event) => {
     y: event.clientY,
   };
 });
+
+
+function give_to_get_data(){
+  socket.emit("give_to_get_data", {});
+}
 
 function send_new_position() {
   let inf_to_new_position = {
