@@ -68,7 +68,7 @@ function draw_players() {
     let client = game_data.clients[clientId];
     if (client.in_game) {
       let drawX = client.position.x - (game_data.clients[socket.id].position.x - wc / 2);
-      let drawY = client.position.y - (game_data.clients[socket.id].position.y - wc / 2);
+      let drawY = client.position.y - (game_data.clients[socket.id].position.y - hc / 2);
       //drawPolygon(drawX, drawY, client.size, client.angles, client.angle, client.color);
       drawCircle_t(drawX, drawY, 20, "pink");
     }
