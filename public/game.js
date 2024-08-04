@@ -6,16 +6,17 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-var game_data = {};
+var wc = canvas.width;
+var hc = canvas.height;
 
-var data_of_THE_player={}
+var game_data = {};
 
 var mouse_position = {
   x: 275,
   y: 375,
 };
 
-var move = false
+var move = false;
 
 var in_game = false;
 var is_collision = false;
@@ -28,11 +29,8 @@ document.getElementById("play").addEventListener("click", () => {
 
 socket.on("move", (data) => {
   game_data = data;
+  //resizeCanvas()
 });
-
-var wc = canvas.width;
-var hc = canvas.height;
-
 player_h = 50;
 player_w = 50;
 
@@ -46,7 +44,7 @@ function resizeCanvas() {
 }
 
 function board() {
-  ctx.fillStyle = "#7e7e7e";
+  ctx.fillStyle = "grey";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -62,31 +60,29 @@ function draw_players() {
   //}
   let currentPlayer = game_data.clients[socket.id];
   let pp = currentPlayer.position;
-  
+
   // Środek ekranu jako stały punkt odniesienia
-  let offsetX = pp.x - (wc / 2);
-  let offsetY = pp.y - (hc / 2);
-  console.log(offsetX)
+  //let offsetX = pp.x - camera_position.x;
+  //let offsetY = pp.y - camera_position.y;
   for (const clientId in game_data.clients) {
     let client = game_data.clients[clientId];
     if (client.in_game) {
-      let drawX = client.position.x - offsetX;
-      let drawY = client.position.y - offsetY;
+      let drawX = client.position.x - (game_data.clients[socket.id].position.x - wc / 2);
+      let drawY = client.position.y - (game_data.clients[socket.id].position.y - wc / 2);
       //drawPolygon(drawX, drawY, client.size, client.angles, client.angle, client.color);
-      drawCircle_t(drawX, drawY, 20, "pink")
+      drawCircle_t(drawX, drawY, 20, "pink");
     }
   }
 }
 
-
-function spawn_meal() {
-  let pp = game_data.clients[socket.id].position
-  let ptx = pp.x-(wc/2)
-  let pty = pp.y-(hc/2)
+function draw_meal() {
+  let pp = game_data.clients[socket.id].position;
+  let ptx = pp.x - wc / 2;
+  let pty = pp.y - hc / 2;
   for (let c in game_data.meal) {
     let m = game_data.meal[c];
     ctx.save();
-    ctx.translate(m.x-ptx, m.y-pty);
+    ctx.translate(m.x - ptx, m.y - pty);
     drawCircle(5, m.type);
     ctx.restore();
   }
@@ -105,34 +101,46 @@ function draw_map() {
     p = game_data.clients[client];
 
     if (p.in_game) {
-      ctx.save();
-      ctx.translate(wc - width_of_map + p.position.x / 50, p.position.y / 50);
-      ctx.rotate(p.angle);
-      drawPolygon(4, p.angles, p.color);
-      ctx.restore();
-      drawCircle_t(wc - width_of_map + p.position.x / 50, p.position.y / 50, 2, "pink")
+      //ctx.save();
+      //ctx.translate(wc - width_of_map + p.position.x / 50, p.position.y / 50);
+      //ctx.rotate(p.angle);
+      //drawPolygon(4, p.angles, p.color);
+      //ctx.restore();
+      drawCircle_t(
+        wc - width_of_map + p.position.x / 50,
+        p.position.y / 50,
+        2,
+        "pink"
+      );
     }
   }
 }
 
 var angle = 0;
 
-function play() {
-  //send_collision_info();
-  resizeCanvas();
+function draw() {
   board();
   if (in_game) {
-    spawn_meal();
+    draw_meal();
     draw_players();
     draw_map();
   }
 }
 
-setInterval(play, 1000 / 60);
+function play() {
+  //send_collision_info();
+  resizeCanvas();
+  send_new_position();
+  draw()
+  
+  
+}
 
-canvas.addEventListener("click", (event)=>{
-  move = !move
-})
+setInterval(play, 1000 / 120);
+
+canvas.addEventListener("click", (event) => {
+  move = !move;
+});
 
 canvas.addEventListener("mousemove", (event) => {
   mouse_position = {
@@ -142,18 +150,15 @@ canvas.addEventListener("mousemove", (event) => {
 });
 
 function send_new_position() {
-  //let inf_to_new_position = {
-  //  mouse_position: mouse_position,
-  //  wc:wc,
-  //  hc:hc,
-  //  move:move
-  //}
-  let inf_to_new_position={}
+  let inf_to_new_position = {
+    mouse_position: mouse_position,
+    wc: wc,
+    hc: hc,
+    move: move,
+  };
+  //let inf_to_new_position={}
   socket.emit("move", inf_to_new_position);
-  send_new_position()
 }
-send_new_position()
-
 function send_collision_info() {
   socket.emit("collision", is_collision);
 }

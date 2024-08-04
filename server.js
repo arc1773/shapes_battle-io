@@ -155,18 +155,15 @@ io.on("connection", (socket) => {
   };
 
   socket.on("move", (data) => {
-    if (data.move) {
-      //game_data.clients[socket.id].position.x +=
-      //  (game_data.clients[socket.id].move_speed *
-      //    (data.mouse_position.x - data.wc)) /
-      //  data.wc;
-      //game_data.clients[socket.id].position.y +=
-      //  (game_data.clients[socket.id].move_speed *
-      //    (data.mouse_position.y - data.hc)) /
-      //  data.hc;
+    if(game_data.clients[socket.id].in_game){
+      if (data.move) {
+        game_data.clients[socket.id].position.x +=game_data.clients[socket.id].move_speed*((data.mouse_position.x-(data.wc/2))/(data.wc/2));
+        game_data.clients[socket.id].position.y +=game_data.clients[socket.id].move_speed*((data.mouse_position.y-(data.hc/2))/(data.hc/2));
+      }
     }
-    game_data.clients[socket.id].position.x+=1
-    game_data.clients[socket.id].position.y+=0
+    //game_data.clients[socket.id].position.x+=1
+    //game_data.clients[socket.id].position.y+=0
+    io.emit("move", game_data);
   });
   socket.on("in_game", (data) => {
     game_data.clients[socket.id].in_game = data;
@@ -187,6 +184,7 @@ io.on("connection", (socket) => {
 });
 
 function server_loop() {
+  //send_game_data()
   counters_of_characteristic();
   change_angle();
   check_colision();
@@ -196,9 +194,8 @@ setInterval(server_loop, 1000 / 60);
 
 function send_game_data() {
   io.emit("move", game_data);
-  send_game_data()
 }
-send_game_data()
+
 //setInterval(send_game_data, 1)
 function change_angle() {
   for (let p in game_data.clients) {
