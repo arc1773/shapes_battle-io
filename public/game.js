@@ -10,6 +10,9 @@ var wc = canvas.width;
 var hc = canvas.height;
 
 var game_data = {};
+var previousPositions = { x: 0, y: 0 };
+var currentPositions = { x: 0, y: 0 };
+var interpolationFactor = 0.9; // Im większa wartość, tym płynniejszy ruch
 
 var mouse_position = {
   x: 275,
@@ -29,6 +32,8 @@ document.getElementById("play").addEventListener("click", () => {
 
 socket.on("move", (data) => {
   game_data = data;
+  previousPositions = currentPositions;
+  currentPositions = game_data.clients;
   //resizeCanvas()
 });
 player_h = 50;
@@ -43,32 +48,35 @@ function resizeCanvas() {
   document.getElementById("play").style.top = hc / 2 + "px";
 }
 
+
+
+function interpolatePosition() {
+  for (let clientId in game_data.clients) {
+    let interpolatedPosition = {
+      x: previousPositions[clientId].position.x + (currentPositions[clientId].position.x - previousPositions[clientId].position.x) * interpolationFactor,
+      y: previousPositions[clientId].position.y + (currentPositions[clientId].position.y - previousPositions[clientId].position.y) * interpolationFactor
+    };
+    console.log(interpolatedPosition)
+    game_data.clients[clientId].position.x=interpolatedPosition.x
+    game_data.clients[clientId].position.y=interpolatedPosition.y
+    
+  }  
+  
+}
+
 function board() {
   ctx.fillStyle = "grey";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 function draw_players() {
-  //let pp = game_data.clients[socket.id].position
-  //let ptx = pp.x-(wc/2)
-  //let pty = pp.y-(hc/2)
-  //for (const client in game_data.clients) {
-  //  p = game_data.clients[client];
-  //  if (p.in_game) {
-  //    drawPolygon(ctx, p.position.x-ptx, p.position.y-pty, p.size, p.angles, p.angle, p.color);
-  //  }
-  //}
   let currentPlayer = game_data.clients[socket.id];
   let pp = currentPlayer.position;
-
-  // Środek ekranu jako stały punkt odniesienia
-  //let offsetX = pp.x - camera_position.x;
-  //let offsetY = pp.y - camera_position.y;
   for (const clientId in game_data.clients) {
     let client = game_data.clients[clientId];
     if (client.in_game) {
-      let drawX = client.position.x - (game_data.clients[socket.id].position.x - wc / 2);
-      let drawY = client.position.y - (game_data.clients[socket.id].position.y - hc / 2);
+      let drawX = client.position.x - (pp.x - wc / 2);
+      let drawY = client.position.y - (pp.y - hc / 2);
       //drawPolygon(drawX, drawY, client.size, client.angles, client.angle, client.color);
       drawCircle_t(drawX, drawY, 20, "pink");
     }
@@ -128,13 +136,12 @@ function draw() {
 }
 
 function play() {
-  give_to_get_data();
+  interpolatePosition()
+  //give_to_get_data();
   //send_collision_info();
   resizeCanvas();
   send_new_position();
-  draw()
-  
-  
+  draw();
 }
 
 setInterval(play, 1000 / 120);
@@ -150,10 +157,11 @@ canvas.addEventListener("mousemove", (event) => {
   };
 });
 
+//function give_to_get_data(){
+//  socket.emit("give_to_get_data", {});
+//}
 
-function give_to_get_data(){
-  socket.emit("give_to_get_data", {});
-}
+setInterval(send_new_position, 1);
 
 function send_new_position() {
   let inf_to_new_position = {

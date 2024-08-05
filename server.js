@@ -144,9 +144,13 @@ io.on("connection", (socket) => {
       x: 275,
       y: 375,
     },
+    velocity:{
+      x:1,
+      y:1
+    },
     in_game: false,
     size: 10,
-    move_speed: 5,
+    move_speed: 1,
     rotation_speed: 0.02,
     angles: 3,
     counter_to_angles: 0,
@@ -157,14 +161,16 @@ io.on("connection", (socket) => {
   socket.on("move", (data) => {
     if(game_data.clients[socket.id].in_game){
       if (data.move) {
+        game_data.clients[socket.id].velocity.x =game_data.clients[socket.id].move_speed*((data.mouse_position.x-(data.wc/2))/(data.wc/2));
+        game_data.clients[socket.id].velocity.y =game_data.clients[socket.id].move_speed*((data.mouse_position.y-(data.hc/2))/(data.hc/2));
         game_data.clients[socket.id].position.x +=game_data.clients[socket.id].move_speed*((data.mouse_position.x-(data.wc/2))/(data.wc/2));
         game_data.clients[socket.id].position.y +=game_data.clients[socket.id].move_speed*((data.mouse_position.y-(data.hc/2))/(data.hc/2));
       }
     }
   });
-  socket.on("give_to_get_data", (data) => {
-    socket.emit("move", game_data);
-  });
+  //socket.on("give_to_get_data", (data) => {
+  //  socket.emit("move", game_data);
+  //});
 
   socket.on("in_game", (data) => {
     game_data.clients[socket.id].in_game = data;
@@ -185,13 +191,13 @@ io.on("connection", (socket) => {
 });
 
 function server_loop() {
-  //send_game_data()
+  send_game_data()
   counters_of_characteristic();
   change_angle();
   check_colision();
   
 }
-setInterval(server_loop, 1000 / 60);
+setInterval(server_loop, 1);
 
 function send_game_data() {
   io.emit("move", game_data);
