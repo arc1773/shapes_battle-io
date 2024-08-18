@@ -1,3 +1,24 @@
+function drawPoligon(x, y, size, liczbaKatow, katNachylenia, color = "black") {
+  const kat = (2 * Math.PI) / liczbaKatow; // Kąt pomiędzy wierzchołkami
+
+  ctx.beginPath();
+  for (let i = 0; i < liczbaKatow; i++) {
+    const currentAngle = i * kat + katNachylenia;
+    const px = x + size * Math.cos(currentAngle);
+    const py = y + size * Math.sin(currentAngle);
+    if (i === 0) {
+      ctx.moveTo(px, py);
+    } else {
+      ctx.lineTo(px, py);
+    }
+  }
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill(); // Wypełnia wnętrze poligonu kolorem
+  ctx.strokeStyle = color;
+  ctx.stroke();
+}
+
 const socket = io();
 
 const canvas = document.querySelector("canvas");
@@ -13,17 +34,21 @@ var gap_between_lines = 50;
 var map_size = 10000;
 
 var players_data = {};
+players_data[socket.id] = {}
+
+var THE_PLAYER = players_data[socket.id]
+
 var meals_data = {};
 
 socket.on("init", (data) => {
   for (var i in data.meal) {
-    console.log(1);
     meals_data[i] = data.meal[i];
   }
 });
 
 socket.on("update", function (data) {
   players_data = data.player;
+  THE_PLAYER = players_data[socket.id]
 });
 
 socket.on("remove", (data) => {
@@ -31,6 +56,17 @@ socket.on("remove", (data) => {
     delete meals_data[data.meal[i]];
   }
 });
+
+
+var button_of_start_game = document.getElementById("button")
+var main_menue_div = document.getElementById("main_menu")
+var game_div = document.getElementById("game")
+button_of_start_game.addEventListener('click', ()=>{
+  socket.emit("join_to_game")
+  main_menue_div.style.display = "none"
+  game_div.style.display = "block"
+})
+
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -40,16 +76,22 @@ function resizeCanvas() {
   socket.emit("change_canvas_size", { x: wc, y: hc });
 }
 
-function draw_player(position, size) {
-  let player = players_data[socket.id].position;
-  let drawX = position.x - (player.x - wc / 2);
-  let drawY = position.y - (player.y - hc / 2);
-  ctx.fillStyle = "black";
-  ctx.fillRect(drawX - size / 2, drawY - size / 2, size, size);
+function draw_player(data) {
+  let player = THE_PLAYER.position;
+  let drawX = data.position.x - (player.x - wc / 2);
+  let drawY = data.position.y - (player.y - hc / 2);
+  drawPoligon(
+    drawX,
+    drawY,
+    data.parametrs.size,
+    data.parametrs.number_of_angles,
+    data.angle,
+    data.parametrs.color
+  );
 }
 
 function draw_meal(data) {
-  let player_p = players_data[socket.id].position;
+  let player_p = THE_PLAYER.position;
   let drawX = data.position.x - (player_p.x - wc / 2);
   let drawY = data.position.y - (player_p.y - hc / 2);
   ctx.fillStyle = data.color;
@@ -57,7 +99,7 @@ function draw_meal(data) {
 }
 
 function draw_map() {
-  let player_p = players_data[socket.id].position;
+  let player_p = THE_PLAYER.position;
   ctx.fillStyle = "#E6E8E6";
   ctx.fillRect(0, 0, wc, hc);
   if (player_p) {
@@ -104,16 +146,72 @@ function draw_minimap() {
   }
 }
 
+var list_of_updates = {
+  move_speed: document.getElementById("move_speed"),
+  size: document.getElementById("size"),
+  rotation_speed: document.getElementById("rotation_speed"),
+  number_of_angles: document.getElementById("num_of_angles"),
+};
+
+var list_of_titles = {
+  move_speed: "title_move_speed",
+  size: "title_size",
+  rotation_speed: "title_rotation_speed",
+  number_of_angles: "title_num_of_angles",
+};
+
+function update_to_update_param() {
+  for (var i in list_of_updates) {
+    var update = list_of_updates[i];
+    var points = update.getElementsByClassName("point");
+    var active_points = [];
+    for (var p = 0; p < points.length; p++) {
+      if (points[p].className == "point") {
+        active_points[p] = points[p];
+      }
+    }
+    var innactive_points = update.getElementsByClassName("point inactive");
+    if (active_points.length < THE_PLAYER.to_update_param[i]) {
+      innactive_points[0].className = "point";
+    }
+    if (active_points.length > THE_PLAYER.to_update_param[i]) {
+      active_points[active_points.length - 1].className = "point inactive";
+    }
+    //speed
+    let el = document.getElementById(list_of_titles[i]);
+    if (i == "move_speed") {
+      let num = THE_PLAYER.levels[i];
+      el.textContent = `speed lv${num}`;
+    } else if (i == "size") {
+      let num = THE_PLAYER.levels[i];
+      el.textContent = `size lv${num}`;
+    } else if (i == "rotation_speed") {
+      let num = THE_PLAYER.levels[i];
+      el.textContent = `rotation speed lv${num}`;
+    } else if (i == "number_of_angles") {
+      let num = THE_PLAYER.levels[i];
+      el.textContent = `angles lv${num}`;
+    }
+  }
+}
+
+var health = document.getElementById("red");
+function update_helath(){
+  health.style.width = THE_PLAYER.health+"px";
+}
+
 setInterval(function () {
   resizeCanvas();
+  update_helath();
+  update_to_update_param();
   ctx.clearRect(0, 0, 500, 500);
-  if (players_data[socket.id] != null) {
+  if (THE_PLAYER != null) {
     draw_map();
     for (var i in meals_data) {
       draw_meal(meals_data[i]);
     }
     for (var i in players_data) {
-      draw_player(players_data[i].position, players_data[i].parametrs.size);
+      draw_player(players_data[i]);
     }
     draw_minimap();
   }
