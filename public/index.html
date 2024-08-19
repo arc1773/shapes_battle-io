@@ -1,135 +1,134 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Evades.io Clone</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            position: relative;
-            font-family: 'Press Start 2P', cursive;
-        }
+      body {
+        position: relative;
+        font-family: "Press Start 2P", cursive;
+      }
 
-        #main_menu{
-            height: 100%;
-            width: 100%;
-            display: flex;
-        }
+      #main_menu {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        background-color: #4caf50;
+      }
 
-        #main_menu #button{
-            margin: auto;
-            background-color: #ccc;
-            height: 25px;
-            width: 100px;
-            text-align: center;
-            border: solid 1px ;
-            border-radius: 10px;
-        }
+      #main_menu #button {
+        margin: auto;
+        background-color: #ccc;
+        height: 25px;
+        width: 100px;
+        text-align: center;
+        border: solid 1px;
+        border-radius: 10px;
+      }
 
-        #game{
-            display: none;
-        }
+      #health {
+        overflow: hidden;
+        border: solid 2px;
+        position: absolute;
+        left: calc(50% - 25px);
+        top: calc(50% - 45px);
+        width: 50px;
+        height: 10px;
+        background-color: antiquewhite;
+      }
+      #red {
+        background-color: red;
+        width: 30px;
+        height: 10px;
+      }
 
-        #health{
-            overflow: hidden;
-            border: solid 2px;
-            position: absolute;
-            left: calc(50% - 25px);
-            top: calc(50% - 45px);
-            width: 50px;
-            height: 10px;
-            background-color:antiquewhite;
-        }
-        #red{
-            background-color: red;
-            width: 30px;
-            height: 10px;
-        }
+      .level {
+        position: absolute;
+        left: 10px;
+        display: flex;
+        width: 320px;
+        height: 50px;
+        background-color: #ffffff;
+        border: 4px solid #ccc;
+        border-radius: 25px;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      }
 
-        .level {
-            position: absolute;
-            left: 10px;
-            display: flex;
-            width: 320px;
-            height: 50px;
-            background-color: #ffffff;
-            border: 4px solid #ccc;
-            border-radius: 25px;
-            overflow: hidden;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        }
+      #move_speed {
+        bottom: 10px;
+      }
+      #size {
+        bottom: 70px;
+      }
+      #rotation_speed {
+        bottom: 130px;
+      }
+      #num_of_angles {
+        bottom: 190px;
+      }
 
-        #move_speed{
-            bottom: 10px;
-        }#size{
-            bottom: 70px;
-        }#rotation_speed{
-            bottom: 130px;
-        }#num_of_angles{
-            bottom: 190px;
-        }
+      .level p {
+        margin: 0;
+        padding: 0 12px;
+        background-color: #e0e0e0;
+        color: #333;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 25px 0 0 25px;
+        font-size: 10px;
+        width: 90px;
+        text-transform: uppercase;
+      }
 
-        .level p {
-            margin: 0;
-            padding: 0 12px;
-            background-color: #e0e0e0;
-            color: #333;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 25px 0 0 25px;
-            font-size: 10px;
-            width: 90px;
-            text-transform: uppercase;
-        }
+      .level .point {
+        background-color: #4caf50;
+        height: 100%;
+        flex-grow: 1;
+        border-right: 2px solid #e0e0e0;
+      }
 
-        .level .point {
-            background-color: #4caf50;
-            height: 100%;
-            flex-grow: 1;
-            border-right: 2px solid #e0e0e0;
-        }
+      .level .point:last-child {
+        border-right: none;
+      }
 
-        .level .point:last-child {
-            border-right: none;
-        }
+      .level .point.inactive {
+        background-color: #dcdcdc;
+      }
 
-        .level .point.inactive {
-            background-color: #dcdcdc;
-        }
-
-        body, html {
-            height: 100%;
-            overflow: hidden;
-            position: relative;
-        }
-        canvas {
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }     
+      body,
+      html {
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+      }
+      canvas {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <div id="main_menu">
-        <div id="button">PLAY</div>
+      <div id="button">PLAY</div>
     </div>
 
-    <div id="game">
-        <canvas></canvas>
-
-    <div id="health">
+    <div id="game" style="display: none">
+      <canvas></canvas>
+      <div id="health">
         <div id="red"></div>
-    </div>
+      </div>
 
-    <div class="level" id="move_speed">
+      <div class="level" id="move_speed">
         <p id="title_move_speed">speed lv1</p>
         <div class="point inactive"></div>
         <div class="point inactive"></div>
@@ -141,8 +140,8 @@
         <div class="point inactive"></div>
         <div class="point inactive"></div>
         <div class="point inactive"></div>
-    </div>
-    <div class="level" id="size">
+      </div>
+      <div class="level" id="size">
         <p id="title_size">speed lv1</p>
         <div class="point inactive"></div>
         <div class="point inactive"></div>
@@ -154,8 +153,8 @@
         <div class="point inactive"></div>
         <div class="point inactive"></div>
         <div class="point inactive"></div>
-    </div>
-    <div class="level" id="rotation_speed">
+      </div>
+      <div class="level" id="rotation_speed">
         <p id="title_rotation_speed">rotation_speed lv1</p>
         <div class="point inactive"></div>
         <div class="point inactive"></div>
@@ -167,8 +166,8 @@
         <div class="point inactive"></div>
         <div class="point inactive"></div>
         <div class="point inactive"></div>
-    </div>
-    <div class="level" id="num_of_angles">
+      </div>
+      <div class="level" id="num_of_angles">
         <p id="title_num_of_angles">angles lv1</p>
         <div class="point inactive"></div>
         <div class="point inactive"></div>
@@ -180,11 +179,10 @@
         <div class="point inactive"></div>
         <div class="point inactive"></div>
         <div class="point inactive"></div>
+      </div>
     </div>
 
-    </div>
-    
     <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
-</body>
+  </body>
 </html>

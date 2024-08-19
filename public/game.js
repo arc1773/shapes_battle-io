@@ -34,9 +34,8 @@ var gap_between_lines = 50;
 var map_size = 10000;
 
 var players_data = {};
-players_data[socket.id] = {};
 
-var THE_PLAYER = players_data[socket.id];
+var THE_PLAYER = null;
 
 var meals_data = {};
 
@@ -199,21 +198,21 @@ function update_helath() {
 setInterval(function () {
   resizeCanvas();
   if (THE_PLAYER != null) {
-      main_menue_div.style.display = "none";
-      game_div.style.display = "block";
-      update_helath();
-      update_to_update_param();
-      ctx.clearRect(0, 0, 500, 500);
+    main_menue_div.style.display = "none";
+    game_div.style.display = "block";
+    update_helath();
+    update_to_update_param();
+    ctx.clearRect(0, 0, 500, 500);
 
-      draw_map();
-      for (var i in meals_data) {
-        draw_meal(meals_data[i]);
-      }
-      for (var i in players_data) {
-        draw_player(players_data[i]);
-      }
-      draw_minimap();
-  }else{
+    draw_map();
+    for (var i in meals_data) {
+      draw_meal(meals_data[i]);
+    }
+    for (var i in players_data) {
+      draw_player(players_data[i]);
+    }
+    draw_minimap();
+  } else {
     main_menue_div.style.display = "flex";
     game_div.style.display = "none";
   }
