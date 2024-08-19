@@ -34,9 +34,9 @@ var gap_between_lines = 50;
 var map_size = 10000;
 
 var players_data = {};
-players_data[socket.id] = {}
+players_data[socket.id] = {};
 
-var THE_PLAYER = players_data[socket.id]
+var THE_PLAYER = players_data[socket.id];
 
 var meals_data = {};
 
@@ -48,7 +48,7 @@ socket.on("init", (data) => {
 
 socket.on("update", function (data) {
   players_data = data.player;
-  THE_PLAYER = players_data[socket.id]
+  THE_PLAYER = players_data[socket.id];
 });
 
 socket.on("remove", (data) => {
@@ -57,16 +57,12 @@ socket.on("remove", (data) => {
   }
 });
 
-
-var button_of_start_game = document.getElementById("button")
-var main_menue_div = document.getElementById("main_menu")
-var game_div = document.getElementById("game")
-button_of_start_game.addEventListener('click', ()=>{
-  socket.emit("join_to_game")
-  main_menue_div.style.display = "none"
-  game_div.style.display = "block"
-})
-
+var button_of_start_game = document.getElementById("button");
+var main_menue_div = document.getElementById("main_menu");
+var game_div = document.getElementById("game");
+button_of_start_game.addEventListener("click", () => {
+  socket.emit("join_to_game");
+});
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -196,24 +192,30 @@ function update_to_update_param() {
 }
 
 var health = document.getElementById("red");
-function update_helath(){
-  health.style.width = THE_PLAYER.health+"px";
+function update_helath() {
+  health.style.width = THE_PLAYER.health + "px";
 }
 
 setInterval(function () {
   resizeCanvas();
-  update_helath();
-  update_to_update_param();
-  ctx.clearRect(0, 0, 500, 500);
   if (THE_PLAYER != null) {
-    draw_map();
-    for (var i in meals_data) {
-      draw_meal(meals_data[i]);
-    }
-    for (var i in players_data) {
-      draw_player(players_data[i]);
-    }
-    draw_minimap();
+      main_menue_div.style.display = "none";
+      game_div.style.display = "block";
+      update_helath();
+      update_to_update_param();
+      ctx.clearRect(0, 0, 500, 500);
+
+      draw_map();
+      for (var i in meals_data) {
+        draw_meal(meals_data[i]);
+      }
+      for (var i in players_data) {
+        draw_player(players_data[i]);
+      }
+      draw_minimap();
+  }else{
+    main_menue_div.style.display = "flex";
+    game_div.style.display = "none";
   }
 }, 40);
 
