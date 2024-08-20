@@ -115,10 +115,28 @@
         top: 0;
         left: 0;
       }
+      .to_ad{
+        display: block;
+        position: absolute;
+        background-color: #dcdcdc;
+        width: 133px;
+        height: 300px;
+        top: calc(50% - 150px);
+        padding: 120px 0;
+        text-align: center;
+      }
+      #ad1{
+        left: 0;
+      }
+      #ad2{
+        left: calc(100% - 133px);
+      }
     </style>
   </head>
   <body>
     <div id="main_menu">
+      <div class="to_ad" id="ad1">advertisiment</div>
+      <div class="to_ad" id="ad2">advertisiment</div>
       <div id="button">PLAY</div>
     </div>
 
@@ -181,7 +199,6 @@
         <div class="point inactive"></div>
       </div>
     </div>
-
     <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
   </body>
