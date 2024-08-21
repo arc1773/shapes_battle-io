@@ -193,6 +193,7 @@ function player_join(socketId) {
     spdX: 0,
     spdY: 0,
     coliding: false,
+    nickname: "arc#1773"
   };
 }
 function player_dead(socketId) {
@@ -218,7 +219,7 @@ function players_update() {
     //update_haracteristics
     player.haracteristics.max_health = player.parametrs.size * 2.5;
     player.haracteristics.damage = player.parametrs.number_of_angles / 10;
-    player.haracteristics.regeneration = player.parametrs.rotation_speed*3;
+    player.haracteristics.regeneration = player.parametrs.rotation_speed * 3;
 
     player.angle += player.parametrs.rotation_speed;
 
@@ -361,6 +362,7 @@ function players_update() {
       levels: player.levels,
       haracteristics: player.haracteristics,
       health: player.health,
+      nickname: player.nickname
     };
   }
   return pack;
@@ -370,9 +372,7 @@ var meals_to_add = {};
 var meals_to_remove = [];
 
 function meals_update() {
-  //spawn
-  //if(meals_data.lenth<=100){
-  if (true) {
+  if (Object.keys(meals_data).length < 3000) {
     let id_of_meal = Math.random();
     let position = {
       x: 10000 * Math.random(),
@@ -380,14 +380,14 @@ function meals_update() {
     };
     let color_of_meal = "pink";
 
-    let color_num = Math.random()
-    if (color_num>.7) {
+    let color_num = Math.random();
+    if (color_num > 0.7) {
       color_of_meal = "red";
-    } else if (color_num>.4) {
+    } else if (color_num > 0.4) {
       color_of_meal = "blue";
-    } else if (color_num>=.1) {
+    } else if (color_num >= 0.1) {
       color_of_meal = "pink";
-    } else if (color_num<.1) {
+    } else if (color_num < 0.1) {
       color_of_meal = "green";
     }
 

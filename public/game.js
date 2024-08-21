@@ -19,6 +19,14 @@ function drawPoligon(x, y, size, liczbaKatow, katNachylenia, color = "black") {
   ctx.stroke();
 }
 
+function lerp(start, end, t) {
+  return {
+    x: start.x + t * (end.x - start.x),
+    y: start.y + t * (end.y - start.y),
+  };
+}
+
+
 const socket = io();
 
 const canvas = document.querySelector("canvas");
@@ -34,6 +42,7 @@ var gap_between_lines = 50;
 var map_size = 10000;
 
 var players_data = {};
+
 
 var THE_PLAYER = null;
 
@@ -56,7 +65,7 @@ socket.on("remove", (data) => {
   }
 });
 
-var button_of_start_game = document.getElementById("button");
+var button_of_start_game = document.getElementById("play");
 var main_menue_div = document.getElementById("main_menu");
 var game_div = document.getElementById("game");
 button_of_start_game.addEventListener("click", () => {
@@ -83,6 +92,18 @@ function draw_player(data) {
     data.angle,
     data.parametrs.color
   );
+  ctx.fillStyle="green"
+  let text = data.nickname
+  let fontSize = 15
+  ctx.font = `${fontSize}px Arial`;
+
+  let textWidth = ctx.measureText(text).width;
+ 
+  let x = drawX-(textWidth / 2);
+  let y = drawY-(fontSize / 2) - data.parametrs.size;
+
+
+  ctx.fillText(text, x, y)
 }
 
 function draw_meal(data) {
@@ -204,6 +225,7 @@ setInterval(function () {
     update_to_update_param();
     ctx.clearRect(0, 0, 500, 500);
 
+
     draw_map();
     for (var i in meals_data) {
       draw_meal(meals_data[i]);
@@ -213,10 +235,10 @@ setInterval(function () {
     }
     draw_minimap();
   } else {
-    main_menue_div.style.display = "flex";
+    main_menue_div.style.display = "block";
     game_div.style.display = "none";
   }
-}, 40);
+}, 1);
 
 document.onkeydown = function (event) {
   if (event.keyCode === 68) {

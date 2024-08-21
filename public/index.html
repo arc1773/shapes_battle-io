@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Evades.io Clone</title>
+    <link rel="icon" href="pentagon.svg" />
+    <title>shapes-io.online</title>
     <style>
       * {
         margin: 0;
@@ -9,26 +10,81 @@
         box-sizing: border-box;
       }
 
+      body,
+      html {
+        height: 100%;
+        overflow: hidden;
+        background-color: #f0f0f0;
+        color: #333;
+        font-family: Arial, sans-serif;
+      }
+
       body {
-        position: relative;
-        font-family: "Press Start 2P", cursive;
+        display: flex;
+        justify-content: center;
+        align-items: center;
       }
 
       #main_menu {
-        height: 100%;
-        width: 100%;
-        display: flex;
-        background-color: #4caf50;
+        text-align: center;
       }
 
-      #main_menu #button {
-        margin: auto;
-        background-color: #ccc;
-        height: 25px;
-        width: 100px;
+      #logo {
+        font-size: 60px;
+        margin-bottom: 50px;
+        font-weight: bold;
+        color: #444;
+      }
+
+      #inp_play {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      #nickname {
+        background-color: #fff;
+        color: #333;
+        border: solid 2px #ccc;
+        height: 40px;
+        width: 60%;
         text-align: center;
-        border: solid 1px;
-        border-radius: 10px;
+        font-size: 18px;
+        border-radius: 5px 0 0 5px;
+        outline: none;
+      }
+
+      #play {
+        background-color: #4caf50;
+        color: #fff;
+        height: 40px;
+        width: 20%;
+        text-align: center;
+        font-size: 18px;
+        border: solid 2px #ccc;
+        border-left: none;
+        border-radius: 0 5px 5px 0;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #play:hover {
+        background-color: #45a049;
+      }
+
+      #mode {
+        background-color: #fff;
+        color: #333;
+        border: solid 2px #ccc;
+        height: 40px;
+        width: 40%;
+        font-size: 18px;
+        border-radius: 5px;
+        outline: none;
+        margin-top: 20px;
+        cursor: pointer;
       }
 
       #health {
@@ -36,7 +92,7 @@
         border: solid 2px;
         position: absolute;
         left: calc(50% - 25px);
-        top: calc(50% - 45px);
+        top: calc(50% - 50px);
         width: 50px;
         height: 10px;
         background-color: antiquewhite;
@@ -103,41 +159,25 @@
         background-color: #dcdcdc;
       }
 
-      body,
-      html {
-        height: 100%;
-        overflow: hidden;
-        position: relative;
-      }
       canvas {
         display: block;
         position: absolute;
         top: 0;
         left: 0;
       }
-      .to_ad{
-        display: block;
-        position: absolute;
-        background-color: #dcdcdc;
-        width: 133px;
-        height: 300px;
-        top: calc(50% - 150px);
-        padding: 120px 0;
-        text-align: center;
-      }
-      #ad1{
-        left: 0;
-      }
-      #ad2{
-        left: calc(100% - 133px);
-      }
     </style>
   </head>
   <body>
     <div id="main_menu">
-      <div class="to_ad" id="ad1">advertisiment</div>
-      <div class="to_ad" id="ad2">advertisiment</div>
-      <div id="button">PLAY</div>
+      <h1 id="logo">shape-io.online</h1>
+      <div id="inp_play">
+        <input type="text" id="nickname" placeholder="Enter your nickname" />
+        <div id="play">PLAY</div>
+      </div>
+      <select id="mode">
+        <option value="FFA">FFA</option>
+        <option value="2Teams">2 Teams</option>
+      </select>
     </div>
 
     <div id="game" style="display: none">
