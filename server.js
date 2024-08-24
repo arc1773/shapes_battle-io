@@ -110,6 +110,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+var SOCKETS = {};
 var players_data = {}; //123123:{...},
 var meals_data = {};
 
@@ -120,11 +121,12 @@ console.log("server started(listan on port 443");
 
 io.on("connection", (socket) => {
   console.log("a user connected");
+  SOCKETS[socket.id] = socket;
 
   socket.emit("init", { meal: meals_data });
 
-  socket.on("join_to_game", function () {
-    player_join(socket.id);
+  socket.on("join_to_game", function (data) {
+    player_join(socket.id, data.nickname, data.mode);
   });
 
   socket.on("stop_start_move", function () {
@@ -145,11 +147,12 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     delete players_data[socket.id];
+    delete SOCKETS[socket.id];
     console.log("user disconnected");
   });
 });
 
-function player_join(socketId) {
+function player_join(socketId, nickname, mode) {
   players_data[socketId] = {
     position: {
       x: Math.random() * 10000,
@@ -193,11 +196,14 @@ function player_join(socketId) {
     spdX: 0,
     spdY: 0,
     coliding: false,
-    nickname: "arc#1773"
+    nickname: nickname,
+    score: 0,
+    mode:mode
   };
 }
 function player_dead(socketId) {
   delete players_data[socketId];
+  SOCKETS[socketId].emit("die")
 }
 
 function areSquaresColliding(square2, square1) {
@@ -212,7 +218,6 @@ function areSquaresColliding(square2, square1) {
 }
 
 function players_update() {
-  var pack = {};
   for (var i in players_data) {
     var player = players_data[i];
 
@@ -254,6 +259,7 @@ function players_update() {
           }
         )
       ) {
+        player.score+=1;
         if (meals_data[n].color == "red") {
           player.to_update_param.size += 1;
           if (player.to_update_param.size >= 10) {
@@ -316,6 +322,10 @@ function players_update() {
           player2.coliding = true;
           player.health -= player2.haracteristics.damage;
           player2.health -= player.haracteristics.damage;
+          if(player2.health<=0){
+            player.score+=player2.score/2
+            player_dead(p);
+          }
         }
       }
 
@@ -354,16 +364,40 @@ function players_update() {
       player.position.x += player.spdX;
       player.position.y += player.spdY;
     }
-    pack[i] = {
-      position: player.position,
-      parametrs: player.parametrs,
-      to_update_param: player.to_update_param,
-      angle: player.angle,
-      levels: player.levels,
-      haracteristics: player.haracteristics,
-      health: player.health,
-      nickname: player.nickname
-    };
+
+    //border
+
+    if (player.position.y - player.parametrs.size / 2 < 0) {
+      player.position.y = 0 + player.parametrs.size / 2;
+    } else if (player.position.y + player.parametrs.size / 2 > 10000) {
+      player.position.y = 10000 - player.parametrs.size / 2;
+    }
+
+    if (player.position.x - player.parametrs.size / 2 < 0) {
+      player.position.x = 0 + player.parametrs.size / 2;
+    } else if (player.position.x + player.parametrs.size / 2 > 10000) {
+      player.position.x = 10000 - player.parametrs.size / 2;
+    }
+  }
+}
+
+function get_update_pack(mode) {
+  var pack = {};
+  for (var i in players_data) {
+    var player = players_data[i];
+    if(player.mode==mode){
+      pack[i] = {
+        position: player.position,
+        parametrs: player.parametrs,
+        to_update_param: player.to_update_param,
+        angle: player.angle,
+        levels: player.levels,
+        haracteristics: player.haracteristics,
+        health: player.health,
+        nickname: player.nickname,
+        score: player.score
+      };
+    }
   }
   return pack;
 }
@@ -402,9 +436,14 @@ function meals_update() {
 setInterval(function () {
   meals_update();
   io.emit("init", { meal: meals_to_add });
-  io.emit("update", {
-    player: players_update(),
-  });
+  players_update();
+  for (var i in players_data) {
+    let mode = players_data[i].mode;
+    SOCKETS[i].emit("update", {player:get_update_pack(mode)});
+  }
+  //io.emit("update", {
+  //  player: players_update(),
+  //});
   io.emit("remove", { meal: meals_to_remove });
   meals_to_add = {};
   meals_to_remove = [];

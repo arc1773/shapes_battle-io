@@ -26,7 +26,6 @@ function lerp(start, end, t) {
   };
 }
 
-
 const socket = io();
 
 const canvas = document.querySelector("canvas");
@@ -42,7 +41,6 @@ var gap_between_lines = 50;
 var map_size = 10000;
 
 var players_data = {};
-
 
 var THE_PLAYER = null;
 
@@ -65,11 +63,20 @@ socket.on("remove", (data) => {
   }
 });
 
+socket.on("die", () => {
+  THE_PLAYER = null;
+});
+
 var button_of_start_game = document.getElementById("play");
 var main_menue_div = document.getElementById("main_menu");
 var game_div = document.getElementById("game");
 button_of_start_game.addEventListener("click", () => {
-  socket.emit("join_to_game");
+  let nickname = document.getElementById("nickname").value;
+  let mode = document.getElementById("mode").value;
+  if (nickname.length == 0) {
+    nickname = "null";
+  }
+  socket.emit("join_to_game", { nickname: nickname, mode: mode });
 });
 
 function resizeCanvas() {
@@ -92,18 +99,17 @@ function draw_player(data) {
     data.angle,
     data.parametrs.color
   );
-  ctx.fillStyle="green"
-  let text = data.nickname
-  let fontSize = 15
+  ctx.fillStyle = "green";
+  let text = data.nickname;
+  let fontSize = 15;
   ctx.font = `${fontSize}px Arial`;
 
   let textWidth = ctx.measureText(text).width;
- 
-  let x = drawX-(textWidth / 2);
-  let y = drawY-(fontSize / 2) - data.parametrs.size;
 
+  let x = drawX - textWidth / 2;
+  let y = drawY - fontSize / 2 - data.parametrs.size;
 
-  ctx.fillText(text, x, y)
+  ctx.fillText(text, x, y);
 }
 
 function draw_meal(data) {
@@ -146,19 +152,17 @@ function draw_map() {
 
 function draw_minimap() {
   ctx.fillStyle = "#E6E8E6";
-  ctx.fillRect(wc - 100, 0, 100, 100);
+  ctx.fillRect(wc-100, hc-100, 100, 100);
   ctx.strokeStyle = "red";
-  ctx.strokeRect(wc - 100, 0, 100, 100);
+  ctx.strokeRect(wc-100, hc-100, 100, 100);
 
   for (var i in players_data) {
     let player = players_data[i];
     ctx.fillStyle = "black";
-    ctx.fillRect(
-      player.position.x / 100 + (wc - 100),
-      player.position.y / 100,
-      2,
-      2
-    );
+    if(i==socket.id){
+      ctx.fillStyle = "blue";
+    }
+    ctx.fillRect(player.position.x / 100 + (wc-100), player.position.y / 100 + (hc-100), 3, 3);
   }
 }
 
@@ -211,6 +215,42 @@ function update_to_update_param() {
   }
 }
 
+
+var lis = document.getElementById("top_5").querySelectorAll("li");
+function update_list_of_top_5() {
+  var players = {}
+
+  for(let i in players_data){
+    players[i]={
+      score: players_data[i].score,
+      nickname: players_data[i].nickname
+    }
+  }
+
+  if(Object.keys(players).length<=5){
+    console.log(Object.keys(players).length)
+    for(let i = 0; i<5; i++){
+      if(i<Object.keys(players).length){
+        lis[i].style.display="list-item"
+      }else{
+        lis[i].style.display="none"
+      }
+      
+    }
+  }
+
+
+  let graczeArray = Object.entries(players);
+  graczeArray.sort((a, b) => b[1].score - a[1].score);
+  let c = 0
+  for(let i in graczeArray){
+    if(c<5)
+    lis[i].textContent = graczeArray[i][1].nickname+"-"+graczeArray[i][1].score
+    c++;
+  }
+
+}
+
 var health = document.getElementById("red");
 function update_helath() {
   health.style.width = THE_PLAYER.health + "px";
@@ -223,8 +263,8 @@ setInterval(function () {
     game_div.style.display = "block";
     update_helath();
     update_to_update_param();
+    update_list_of_top_5();
     ctx.clearRect(0, 0, 500, 500);
-
 
     draw_map();
     for (var i in meals_data) {
@@ -238,7 +278,7 @@ setInterval(function () {
     main_menue_div.style.display = "block";
     game_div.style.display = "none";
   }
-}, 1);
+}, 40);
 
 document.onkeydown = function (event) {
   if (event.keyCode === 68) {

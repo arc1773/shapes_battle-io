@@ -107,8 +107,8 @@
         position: absolute;
         left: 10px;
         display: flex;
-        width: 320px;
-        height: 50px;
+        width: 200px;
+        height: 40px;
         background-color: #ffffff;
         border: 4px solid #ccc;
         border-radius: 25px;
@@ -120,13 +120,13 @@
         bottom: 10px;
       }
       #size {
-        bottom: 70px;
+        bottom: 60px;
       }
       #rotation_speed {
-        bottom: 130px;
+        bottom: 110px;
       }
       #num_of_angles {
-        bottom: 190px;
+        bottom: 160px;
       }
 
       .level p {
@@ -159,6 +159,44 @@
         background-color: #dcdcdc;
       }
 
+      #top_5 {
+        font-size: 15px;
+        position: absolute;
+        left: calc(100% - 150px); /* Adjusted to provide more space */
+        top: 0px;
+        height: auto; /* Adjust height to fit the content */
+        width: 150px; /* Increased width for better readability */
+        background-color: #f0f0f0; /* Light background color for contrast */
+        border: 1px solid #ccc; /* Subtle border for structure */
+        border-radius: 8px; /* Rounded corners for a softer look */
+        padding: 10px; /* Added padding for spacing */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+      }
+
+      #top_5 p {
+        font-weight: bold;
+        text-align: center; /* Center-align the title */
+        margin-bottom: 10px; /* Space below the title */
+      }
+
+      #top_5 ol {
+        list-style-position: inside;
+        padding-left: 10px; /* Space between the list and the container edge */
+        margin: 0;
+      }
+
+      #top_5 li {
+        margin-bottom: 5px; /* Space between list items */
+        font-family: Arial, sans-serif; /* Cleaner font */
+        color: #333; /* Darker text color for contrast */
+      }
+
+      #top_5 li:nth-child(even) {
+        background-color: #e0e0e0; /* Alternating background for list items */
+        border-radius: 4px;
+        padding: 2px;
+      }
+
       canvas {
         display: block;
         position: absolute;
@@ -175,8 +213,8 @@
         <div id="play">PLAY</div>
       </div>
       <select id="mode">
-        <option value="FFA">FFA</option>
-        <option value="2Teams">2 Teams</option>
+        <option value="FFA1">FFA1</option>
+        <option value="FFA2">FFA2</option>
       </select>
     </div>
 
@@ -237,6 +275,17 @@
         <div class="point inactive"></div>
         <div class="point inactive"></div>
         <div class="point inactive"></div>
+      </div>
+
+      <div id="top_5">
+        <p>Scoreboard</p>
+        <ol>
+          <li>arc1adfad-15</li>
+          <li>arc1-20</li>
+          <li>arc1-12</li>
+          <li>arc1dfa-11</li>
+          <li>arc1-8</li>
+        </ol>
       </div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
