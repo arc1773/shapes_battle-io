@@ -1,7 +1,7 @@
 function executeRecaptcha(action, callback) {
   grecaptcha.ready(function () {
     grecaptcha
-      .execute("6Le-0C4qAAAAAJhLPePhAAtiav4BeOU8dKiCm8rr", { action: action })
+      .execute("6LcMGS8qAAAAABR_ueTrKT98fFAK0eMdDPh32NO9", { action: action })
       .then(function (token) {
         callback(token);
       });

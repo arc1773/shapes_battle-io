@@ -1,3 +1,11 @@
+//localhost site key: 6Le-0C4qAAAAAJhLPePhAAtiav4BeOU8dKiCm8rr
+//localhost secret key: 6Le-0C4qAAAAAJrzCFxl3UnS0kfwsJmnD4xmCp50
+
+//arturs.online site key: 6LcMGS8qAAAAABR_ueTrKT98fFAK0eMdDPh32NO9
+//arturs.online secret key: 6LcMGS8qAAAAAMbHx_RjwGep0_-B-uhmcq7WFIDR
+
+
+
 function generujPunktyPoligonu(x, y, size, liczbaKatow, katNachylenia) {
   const kat = (2 * Math.PI) / liczbaKatow;
   const punkty = [];
@@ -115,7 +123,7 @@ var SOCKETS = {};
 var players_data = {}; //123123:{...},
 var meals_data = {};
 
-const SECRET_KEY = '6Le-0C4qAAAAAJrzCFxl3UnS0kfwsJmnD4xmCp50';
+const SECRET_KEY = '6LcMGS8qAAAAAMbHx_RjwGep0_-B-uhmcq7WFIDR';
 
 app.use(express.static("public"));
 
