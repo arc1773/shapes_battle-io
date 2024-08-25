@@ -109,6 +109,7 @@ socket.on("die", () => {
 var button_of_start_game = document.getElementById("play");
 var main_menue_div = document.getElementById("main_menu");
 var game_div = document.getElementById("game");
+var err_text = document.getElementById("err");
 button_of_start_game.addEventListener("click", async () => {
   if (!captcha_verified) {
     executeRecaptcha("play", function (token) {
@@ -120,10 +121,17 @@ button_of_start_game.addEventListener("click", async () => {
   if (captcha_verified) {
     let nickname = document.getElementById("nickname").value;
     let mode = document.getElementById("mode").value;
-    if (nickname.length == 0) {
-      nickname = "null";
+
+    if (nickname.length <= 3) {
+      err_text.style.display = "block";
+      err_text.textContent = "nickname is too short";
+    } else if (nickname.length >8) {
+      err_text.style.display = "block";
+      err_text.textContent = "nickname is too long";
+    } else {
+      socket.emit("join_to_game", { nickname: nickname, mode: mode });
+      err_text.style.display = "none";
     }
-    socket.emit("join_to_game", { nickname: nickname, mode: mode });
   }
 });
 
@@ -147,6 +155,8 @@ function draw_player(pos, data) {
     data.angle,
     data.parametrs.color
   );
+
+  //nick name
   ctx.fillStyle = "green";
   let text = data.nickname;
   let fontSize = 15;
@@ -300,9 +310,17 @@ function update_list_of_top_5() {
   }
 }
 
-var health = document.getElementById("red");
-function update_helath() {
-  health.style.width = THE_PLAYER.health + "px";
+function draw_helath() {
+  //health bar
+  ctx.fillStyle = "red";
+  ctx.fillRect(
+    wc / 2 - 25,
+    hc / 2 - THE_PLAYER.parametrs.size - 30,
+    (THE_PLAYER.health / THE_PLAYER.haracteristics.max_health) * 50,
+    10
+  );
+  ctx.strokeStyle = "black";
+  ctx.strokeRect(wc / 2 - 25, hc / 2 - THE_PLAYER.parametrs.size - 30, 50, 10);
 }
 
 setInterval(function () {
@@ -318,7 +336,6 @@ setInterval(function () {
 
     main_menue_div.style.display = "none";
     game_div.style.display = "block";
-    update_helath();
     update_to_update_param();
     update_list_of_top_5();
     ctx.clearRect(0, 0, 500, 500);
@@ -331,6 +348,7 @@ setInterval(function () {
       draw_player(interpolatedPlayersPos[i], players_data[i]);
     }
     draw_minimap();
+    draw_helath();
   } else {
     main_menue_div.style.display = "block";
     game_div.style.display = "none";

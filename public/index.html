@@ -88,21 +88,11 @@
         margin-top: 20px;
         cursor: pointer;
       }
-
-      #health {
-        overflow: hidden;
-        border: solid 2px;
-        position: absolute;
-        left: calc(50% - 25px);
-        top: calc(50% - 50px);
-        width: 50px;
-        height: 10px;
-        background-color: antiquewhite;
-      }
-      #red {
-        background-color: red;
-        width: 30px;
-        height: 10px;
+      
+      #err{
+        color: red;
+        font-size: 20px;
+        display: none;
       }
 
       .level {
@@ -164,10 +154,10 @@
       #top_5 {
         font-size: 15px;
         position: absolute;
-        left: calc(100% - 150px); /* Adjusted to provide more space */
+        left: calc(100% - 175px); /* Adjusted to provide more space */
         top: 0px;
         height: auto; /* Adjust height to fit the content */
-        width: 150px; /* Increased width for better readability */
+        width: 175px; /* Increased width for better readability */
         background-color: #f0f0f0; /* Light background color for contrast */
         border: 1px solid #ccc; /* Subtle border for structure */
         border-radius: 8px; /* Rounded corners for a softer look */
@@ -214,6 +204,7 @@
         <input type="text" id="nickname" placeholder="Enter your nickname" />
         <div id="play">PLAY</div>
       </div>
+      <div id="err">name is too long</div>
       <select id="mode">
         <option value="FFA1">FFA1</option>
         <option value="FFA2">FFA2</option>
@@ -222,9 +213,6 @@
 
     <div id="game" style="display: none">
       <canvas></canvas>
-      <div id="health">
-        <div id="red"></div>
-      </div>
 
       <div class="level" id="move_speed">
         <p id="title_move_speed">speed lv1</p>
