@@ -4,8 +4,8 @@
 //arturs.online site key: 6LcMGS8qAAAAABR_ueTrKT98fFAK0eMdDPh32NO9
 //arturs.online secret key: 6LcMGS8qAAAAAMbHx_RjwGep0_-B-uhmcq7WFIDR
 
-//https://shapes-battle-io.onrender.com site key: 6Lf5GS8qAAAAAJS54-8ATIYTIMzO8AO4kNUm6xc0
-//https://shapes-battle-io.onrender.com secret key: 6Lf5GS8qAAAAANvjUa9povmDhIPL-90CK-et_kw8
+//shapes-battle-io.onrender.com site key: 6Lf5GS8qAAAAAJS54-8ATIYTIMzO8AO4kNUm6xc0
+//shapes-battle-io.onrender.com secret key: 6Lf5GS8qAAAAANvjUa9povmDhIPL-90CK-et_kw8
 
 
 function generujPunktyPoligonu(x, y, size, liczbaKatow, katNachylenia) {
