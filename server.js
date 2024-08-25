@@ -105,6 +105,7 @@ const express = require("express");
 const http = require("http");
 const { emit } = require("process");
 const socketIo = require("socket.io");
+const axios = require("axios");
 
 const app = express();
 const server = http.createServer(app);
@@ -113,6 +114,8 @@ const io = socketIo(server);
 var SOCKETS = {};
 var players_data = {}; //123123:{...},
 var meals_data = {};
+
+const SECRET_KEY = '6Le-0C4qAAAAAJrzCFxl3UnS0kfwsJmnD4xmCp50';
 
 app.use(express.static("public"));
 
@@ -145,6 +148,26 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("verify-recaptcha", async (token) => {
+    try {
+      const response = await axios.post(
+        `https://www.google.com/recaptcha/api/siteverify?secret=${SECRET_KEY}&response=${token}`
+      );
+      const data = response.data;
+
+      if (data.success && data.score > 0.7) {
+        console.log("reCAPTCHA verified successfully");
+        socket.emit("captcha-verified", { success: true });
+      } else {
+        console.log("reCAPTCHA verification failed");
+        socket.emit("captcha-verified", { success: false });
+      }
+    } catch (error) {
+      console.error("Error during reCAPTCHA verification:", error);
+      socket.emit("captcha-verified", { success: false });
+    }
+  });
+
   socket.on("disconnect", () => {
     delete players_data[socket.id];
     delete SOCKETS[socket.id];
@@ -167,7 +190,7 @@ function player_join(socketId, nickname, mode) {
       y: 500,
     },
     parametrs: {
-      move_speed: 3, //move_speed
+      move_speed: 10, //move_speed
       size: 20, //health
       number_of_angles: 3, //damage
       rotation_speed: 0.06, //regeneration
@@ -198,12 +221,12 @@ function player_join(socketId, nickname, mode) {
     coliding: false,
     nickname: nickname,
     score: 0,
-    mode:mode
+    mode: mode,
   };
 }
 function player_dead(socketId) {
   delete players_data[socketId];
-  SOCKETS[socketId].emit("die")
+  SOCKETS[socketId].emit("die");
 }
 
 function areSquaresColliding(square2, square1) {
@@ -259,7 +282,7 @@ function players_update() {
           }
         )
       ) {
-        player.score+=1;
+        player.score += 1;
         if (meals_data[n].color == "red") {
           player.to_update_param.size += 1;
           if (player.to_update_param.size >= 10) {
@@ -322,8 +345,8 @@ function players_update() {
           player2.coliding = true;
           player.health -= player2.haracteristics.damage;
           player2.health -= player.haracteristics.damage;
-          if(player2.health<=0){
-            player.score+=player2.score/2
+          if (player2.health <= 0) {
+            player.score += player2.score / 2;
             player_dead(p);
           }
         }
@@ -361,6 +384,9 @@ function players_update() {
         ((mouse_positon.y - player.screen_size.y / 2) /
           (player.screen_size.y / 4));
 
+      //player.spdX = 10
+      //player.spdY = 10
+
       player.position.x += player.spdX;
       player.position.y += player.spdY;
     }
@@ -385,7 +411,7 @@ function get_update_pack(mode) {
   var pack = {};
   for (var i in players_data) {
     var player = players_data[i];
-    if(player.mode==mode){
+    if (player.mode == mode) {
       pack[i] = {
         position: player.position,
         parametrs: player.parametrs,
@@ -395,7 +421,7 @@ function get_update_pack(mode) {
         haracteristics: player.haracteristics,
         health: player.health,
         nickname: player.nickname,
-        score: player.score
+        score: player.score,
       };
     }
   }
@@ -439,7 +465,7 @@ setInterval(function () {
   players_update();
   for (var i in players_data) {
     let mode = players_data[i].mode;
-    SOCKETS[i].emit("update", {player:get_update_pack(mode)});
+    SOCKETS[i].emit("update", { player: get_update_pack(mode) });
   }
   //io.emit("update", {
   //  player: players_update(),

@@ -1,3 +1,24 @@
+function executeRecaptcha(action, callback) {
+  grecaptcha.ready(function () {
+    grecaptcha
+      .execute("6Le-0C4qAAAAAJhLPePhAAtiav4BeOU8dKiCm8rr", { action: action })
+      .then(function (token) {
+        callback(token);
+      });
+  });
+}
+
+function getdata() {
+  return new Promise((resolve, reject) => {
+    socket.once("captcha-verified", (data) => {
+      resolve(data.success);
+    });
+
+    // Opcjonalnie: można dodać timeout na przypadku, gdy zdarzenie się nie pojawi
+    // setTimeout(() => reject('Timeout'), 10000); // 10 sekund na timeout
+  });
+}
+
 function drawPoligon(x, y, size, liczbaKatow, katNachylenia, color = "black") {
   const kat = (2 * Math.PI) / liczbaKatow; // Kąt pomiędzy wierzchołkami
 
@@ -20,11 +41,17 @@ function drawPoligon(x, y, size, liczbaKatow, katNachylenia, color = "black") {
 }
 
 function lerp(start, end, t) {
-  return {
-    x: start.x + t * (end.x - start.x),
-    y: start.y + t * (end.y - start.y),
-  };
+  var playersPos = {};
+  for (var i in end) {
+    playersPos[i] = {
+      x: start[i].position.x + t * (end[i].position.x - start[i].position.x),
+      y: start[i].position.y + t * (end[i].position.y - start[i].position.y),
+    };
+  }
+  return playersPos;
 }
+
+var t = 0;
 
 const socket = io();
 
@@ -46,13 +73,25 @@ var THE_PLAYER = null;
 
 var meals_data = {};
 
+var captcha_verified = false;
+
 socket.on("init", (data) => {
   for (var i in data.meal) {
     meals_data[i] = data.meal[i];
   }
 });
 
+let previousPlayersPos = null;
+let currentPlayersPos = null;
+
+var interpolatedPlayersPos = null;
+
 socket.on("update", function (data) {
+  previousPlayersPos = currentPlayersPos;
+  currentPlayersPos = data.player;
+
+  t = 0;
+
   players_data = data.player;
   THE_PLAYER = players_data[socket.id];
 });
@@ -70,13 +109,22 @@ socket.on("die", () => {
 var button_of_start_game = document.getElementById("play");
 var main_menue_div = document.getElementById("main_menu");
 var game_div = document.getElementById("game");
-button_of_start_game.addEventListener("click", () => {
-  let nickname = document.getElementById("nickname").value;
-  let mode = document.getElementById("mode").value;
-  if (nickname.length == 0) {
-    nickname = "null";
+button_of_start_game.addEventListener("click", async () => {
+  if (!captcha_verified) {
+    executeRecaptcha("play", function (token) {
+      socket.emit("verify-recaptcha", token);
+    });
+    captcha_verified = await getdata();
   }
-  socket.emit("join_to_game", { nickname: nickname, mode: mode });
+
+  if (captcha_verified) {
+    let nickname = document.getElementById("nickname").value;
+    let mode = document.getElementById("mode").value;
+    if (nickname.length == 0) {
+      nickname = "null";
+    }
+    socket.emit("join_to_game", { nickname: nickname, mode: mode });
+  }
 });
 
 function resizeCanvas() {
@@ -87,10 +135,11 @@ function resizeCanvas() {
   socket.emit("change_canvas_size", { x: wc, y: hc });
 }
 
-function draw_player(data) {
-  let player = THE_PLAYER.position;
-  let drawX = data.position.x - (player.x - wc / 2);
-  let drawY = data.position.y - (player.y - hc / 2);
+function draw_player(pos, data) {
+  let player = interpolatedPlayersPos[socket.id];
+  //console.log(data.position.x+" "+data.position.y)
+  let drawX = pos.x - (player.x - wc / 2);
+  let drawY = pos.y - (player.y - hc / 2);
   drawPoligon(
     drawX,
     drawY,
@@ -99,6 +148,7 @@ function draw_player(data) {
     data.angle,
     data.parametrs.color
   );
+  console.log(data.parametrs.number_of_angles)
   ctx.fillStyle = "green";
   let text = data.nickname;
   let fontSize = 15;
@@ -113,7 +163,7 @@ function draw_player(data) {
 }
 
 function draw_meal(data) {
-  let player_p = THE_PLAYER.position;
+  let player_p = interpolatedPlayersPos[socket.id];
   let drawX = data.position.x - (player_p.x - wc / 2);
   let drawY = data.position.y - (player_p.y - hc / 2);
   ctx.fillStyle = data.color;
@@ -121,7 +171,7 @@ function draw_meal(data) {
 }
 
 function draw_map() {
-  let player_p = THE_PLAYER.position;
+  let player_p = interpolatedPlayersPos[socket.id];
   ctx.fillStyle = "#E6E8E6";
   ctx.fillRect(0, 0, wc, hc);
   if (player_p) {
@@ -152,17 +202,22 @@ function draw_map() {
 
 function draw_minimap() {
   ctx.fillStyle = "#E6E8E6";
-  ctx.fillRect(wc-100, hc-100, 100, 100);
+  ctx.fillRect(wc - 100, hc - 100, 100, 100);
   ctx.strokeStyle = "red";
-  ctx.strokeRect(wc-100, hc-100, 100, 100);
+  ctx.strokeRect(wc - 100, hc - 100, 100, 100);
 
   for (var i in players_data) {
     let player = players_data[i];
     ctx.fillStyle = "black";
-    if(i==socket.id){
+    if (i == socket.id) {
       ctx.fillStyle = "blue";
     }
-    ctx.fillRect(player.position.x / 100 + (wc-100), player.position.y / 100 + (hc-100), 3, 3);
+    ctx.fillRect(
+      player.position.x / 100 + (wc - 100),
+      player.position.y / 100 + (hc - 100),
+      3,
+      3
+    );
   }
 }
 
@@ -215,40 +270,36 @@ function update_to_update_param() {
   }
 }
 
-
 var lis = document.getElementById("top_5").querySelectorAll("li");
 function update_list_of_top_5() {
-  var players = {}
+  var players = {};
 
-  for(let i in players_data){
-    players[i]={
+  for (let i in players_data) {
+    players[i] = {
       score: players_data[i].score,
-      nickname: players_data[i].nickname
-    }
+      nickname: players_data[i].nickname,
+    };
   }
 
-  if(Object.keys(players).length<=5){
-    console.log(Object.keys(players).length)
-    for(let i = 0; i<5; i++){
-      if(i<Object.keys(players).length){
-        lis[i].style.display="list-item"
-      }else{
-        lis[i].style.display="none"
+  if (Object.keys(players).length <= 5) {
+    for (let i = 0; i < 5; i++) {
+      if (i < Object.keys(players).length) {
+        lis[i].style.display = "list-item";
+      } else {
+        lis[i].style.display = "none";
       }
-      
     }
   }
-
 
   let graczeArray = Object.entries(players);
   graczeArray.sort((a, b) => b[1].score - a[1].score);
-  let c = 0
-  for(let i in graczeArray){
-    if(c<5)
-    lis[i].textContent = graczeArray[i][1].nickname+"-"+graczeArray[i][1].score
+  let c = 0;
+  for (let i in graczeArray) {
+    if (c < 5)
+      lis[i].textContent =
+        graczeArray[i][1].nickname + "-" + graczeArray[i][1].score;
     c++;
   }
-
 }
 
 var health = document.getElementById("red");
@@ -257,8 +308,16 @@ function update_helath() {
 }
 
 setInterval(function () {
+  var recaptchaBadge = document.querySelector(".grecaptcha-badge");
   resizeCanvas();
   if (THE_PLAYER != null) {
+    if (recaptchaBadge) {
+      recaptchaBadge.style.display = "none"; // lub użyj visibility: hidden;
+    }
+    t += 1 / 5;
+
+    interpolatedPlayersPos = lerp(previousPlayersPos, currentPlayersPos, t);
+
     main_menue_div.style.display = "none";
     game_div.style.display = "block";
     update_helath();
@@ -271,14 +330,14 @@ setInterval(function () {
       draw_meal(meals_data[i]);
     }
     for (var i in players_data) {
-      draw_player(players_data[i]);
+      draw_player(interpolatedPlayersPos[i], players_data[i]);
     }
     draw_minimap();
   } else {
     main_menue_div.style.display = "block";
     game_div.style.display = "none";
   }
-}, 40);
+}, 9);
 
 document.onkeydown = function (event) {
   if (event.keyCode === 68) {
