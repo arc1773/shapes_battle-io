@@ -137,7 +137,6 @@ function resizeCanvas() {
 
 function draw_player(pos, data) {
   let player = interpolatedPlayersPos[socket.id];
-  //console.log(data.position.x+" "+data.position.y)
   let drawX = pos.x - (player.x - wc / 2);
   let drawY = pos.y - (player.y - hc / 2);
   drawPoligon(
@@ -148,7 +147,6 @@ function draw_player(pos, data) {
     data.angle,
     data.parametrs.color
   );
-  console.log(data.parametrs.number_of_angles)
   ctx.fillStyle = "green";
   let text = data.nickname;
   let fontSize = 15;
