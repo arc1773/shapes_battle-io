@@ -20,7 +20,6 @@
         font-family: Arial, sans-serif;
       }
 
-
       body {
         display: flex;
         justify-content: center;
@@ -88,11 +87,69 @@
         margin-top: 20px;
         cursor: pointer;
       }
-      
-      #err{
+
+      #err {
         color: red;
         font-size: 20px;
         display: none;
+      }
+
+      #exit-button {
+        position: absolute;
+        left: 4px;
+        top: 4px;
+        background-color: #ff4d4d;
+        color: white;
+        font-size: 16px;
+        font-family: Arial, sans-serif;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        transition: background-color 0.3s ease;
+        z-index: 999;
+      }
+
+      #exit-button:hover {
+        background-color: #ff1a1a;
+      }
+
+      #exit-button:active {
+        background-color: #cc0000;
+      }
+
+      /* Ukrycie okna dialogowego */
+      #confirm-dialog {
+        display: none;
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        transform: translate(0%, 0%);
+        background-color: #333;
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        width: 300px;
+        text-align: center;
+      }
+
+      #confirm-dialog button {
+        background-color: #ff4d4d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        margin: 10px;
+        cursor: pointer;
+        border-radius: 5px;
+        font-size: 16px;
+        transition: background-color 0.3s ease;
+      }
+
+      #confirm-dialog button:hover {
+        background-color: #ff1a1a;
       }
 
       .level {
@@ -214,6 +271,14 @@
     <div id="game" style="display: none">
       <canvas></canvas>
 
+      <div id="exit-button">Exit</div>
+
+      <div id="confirm-dialog" id="confirmDialog">
+        <p>Czy na pewno chcesz wyjść?</p>
+        <button id="yesButton">Yes</button>
+        <button id="noButton">No</button>
+      </div>
+
       <div class="level" id="move_speed">
         <p id="title_move_speed">speed lv1</p>
         <div class="point inactive"></div>
@@ -240,6 +305,7 @@
         <div class="point inactive"></div>
         <div class="point inactive"></div>
       </div>
+
       <div class="level" id="rotation_speed">
         <p id="title_rotation_speed">rotation_speed lv1</p>
         <div class="point inactive"></div>
@@ -253,6 +319,7 @@
         <div class="point inactive"></div>
         <div class="point inactive"></div>
       </div>
+
       <div class="level" id="num_of_angles">
         <p id="title_num_of_angles">angles lv1</p>
         <div class="point inactive"></div>

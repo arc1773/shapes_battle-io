@@ -102,7 +102,7 @@ socket.on("remove", (data) => {
   }
 });
 
-socket.on("die", () => {
+socket.on("kick", () => {
   THE_PLAYER = null;
 });
 
@@ -125,7 +125,7 @@ button_of_start_game.addEventListener("click", async () => {
     if (nickname.length <= 3) {
       err_text.style.display = "block";
       err_text.textContent = "nickname is too short";
-    } else if (nickname.length >8) {
+    } else if (nickname.length > 8) {
       err_text.style.display = "block";
       err_text.textContent = "nickname is too long";
     } else {
@@ -134,6 +134,29 @@ button_of_start_game.addEventListener("click", async () => {
     }
   }
 });
+
+var button_of_exit_game = document.getElementById("exit-button");
+var confirm_dialog = document.getElementById("confirm-dialog");
+var yesButton = document.getElementById("yesButton");
+var noButton = document.getElementById("noButton");
+button_of_exit_game.addEventListener("click", () => {
+  confirm_dialog.style.display = "block";
+  button_of_exit_game.style.display = "none";
+});
+
+yesButton.addEventListener("click",()=>{
+  socket.emit("leave_game");
+  confirm_dialog.style.display = "none";
+  button_of_exit_game.style.display = "block";
+})
+noButton.addEventListener("click",()=>{
+  confirm_dialog.style.display = "none";
+  button_of_exit_game.style.display = "block";
+})
+
+
+
+
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;

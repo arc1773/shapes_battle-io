@@ -142,6 +142,11 @@ io.on("connection", (socket) => {
     player_join(socket.id, data.nickname, data.mode);
   });
 
+  socket.on("leave_game", function () {
+    delete players_data[socket.id];
+    socket.emit("kick")
+  });
+
   socket.on("stop_start_move", function () {
     players_data[socket.id].moving = !players_data[socket.id].moving;
   });
@@ -236,7 +241,7 @@ function player_join(socketId, nickname, mode) {
 }
 function player_dead(socketId) {
   delete players_data[socketId];
-  SOCKETS[socketId].emit("die");
+  SOCKETS[socketId].emit("kick");
 }
 
 function areSquaresColliding(square2, square1) {
