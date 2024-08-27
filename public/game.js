@@ -42,11 +42,13 @@ function drawPoligon(x, y, size, liczbaKatow, katNachylenia, color = "black") {
 
 function lerp(start, end, t) {
   var playersPos = {};
-  for (var i in end) {
-    playersPos[i] = {
-      x: start[i].position.x + t * (end[i].position.x - start[i].position.x),
-      y: start[i].position.y + t * (end[i].position.y - start[i].position.y),
-    };
+  for (var i in start) {
+    if(end[i]){
+      playersPos[i] = {
+        x: start[i].position.x + t * (end[i].position.x - start[i].position.x),
+        y: start[i].position.y + t * (end[i].position.y - start[i].position.y),
+      };
+    }
   }
   return playersPos;
 }
@@ -195,6 +197,10 @@ function draw_player(pos, data) {
 
 function draw_meal(data) {
   let player_p = interpolatedPlayersPos[socket.id];
+  if(!player_p){
+    player_p = players_data[socket.id]
+
+  }
   let drawX = data.position.x - (player_p.x - wc / 2);
   let drawY = data.position.y - (player_p.y - hc / 2);
   ctx.fillStyle = data.color;
@@ -233,9 +239,9 @@ function draw_map() {
 
 function draw_minimap() {
   ctx.fillStyle = "#E6E8E6";
-  ctx.fillRect(wc - 100, hc - 100, 100, 100);
+  ctx.fillRect(wc - 105, hc - 105, 100, 100);
   ctx.strokeStyle = "red";
-  ctx.strokeRect(wc - 100, hc - 100, 100, 100);
+  ctx.strokeRect(wc - 105, hc - 105, 100, 100);
 
   for (var i in players_data) {
     let player = players_data[i];
@@ -244,8 +250,8 @@ function draw_minimap() {
       ctx.fillStyle = "blue";
     }
     ctx.fillRect(
-      player.position.x / 100 + (wc - 100),
-      player.position.y / 100 + (hc - 100),
+      (player.position.x / 100)-1.5 + (wc - 105),
+      (player.position.y / 100)-1.5 + (hc - 105),
       3,
       3
     );
@@ -367,7 +373,7 @@ setInterval(function () {
     for (var i in meals_data) {
       draw_meal(meals_data[i]);
     }
-    for (var i in players_data) {
+    for (var i in interpolatedPlayersPos) {
       draw_player(interpolatedPlayersPos[i], players_data[i]);
     }
     draw_minimap();

@@ -7,7 +7,6 @@
 //shapes-battle-io.onrender.com site key: 6Lf5GS8qAAAAAJS54-8ATIYTIMzO8AO4kNUm6xc0
 //shapes-battle-io.onrender.com secret key: 6Lf5GS8qAAAAANvjUa9povmDhIPL-90CK-et_kw8
 
-
 function generujPunktyPoligonu(x, y, size, liczbaKatow, katNachylenia) {
   const kat = (2 * Math.PI) / liczbaKatow;
   const punkty = [];
@@ -125,7 +124,7 @@ var SOCKETS = {};
 var players_data = {}; //123123:{...},
 var meals_data = {};
 
-const SECRET_KEY = '6Lf5GS8qAAAAANvjUa9povmDhIPL-90CK-et_kw8';
+const SECRET_KEY = "6Lf5GS8qAAAAANvjUa9povmDhIPL-90CK-et_kw8";
 
 app.use(express.static("public"));
 
@@ -139,12 +138,12 @@ io.on("connection", (socket) => {
   socket.emit("init", { meal: meals_data });
 
   socket.on("join_to_game", function (data) {
-    player_join(socket.id, data.nickname, data.mode);
+    player_join(socket.id, data.nickname, data.mode, false);
   });
 
   socket.on("leave_game", function () {
     delete players_data[socket.id];
-    socket.emit("kick")
+    socket.emit("kick");
   });
 
   socket.on("stop_start_move", function () {
@@ -190,7 +189,7 @@ io.on("connection", (socket) => {
   });
 });
 
-function player_join(socketId, nickname, mode) {
+function player_join(socketId, nickname, mode, bot) {
   players_data[socketId] = {
     position: {
       x: Math.random() * 10000,
@@ -205,7 +204,7 @@ function player_join(socketId, nickname, mode) {
       y: 500,
     },
     parametrs: {
-      move_speed: 10, //move_speed
+      move_speed: 12, //move_speed
       size: 20, //health
       number_of_angles: 3, //damage
       rotation_speed: 0.06, //regeneration
@@ -237,11 +236,14 @@ function player_join(socketId, nickname, mode) {
     nickname: nickname,
     score: 0,
     mode: mode,
+    bot: bot,
   };
 }
 function player_dead(socketId) {
+  if (!players_data[socketId].bot) {
+    SOCKETS[socketId].emit("kick");
+  }
   delete players_data[socketId];
-  SOCKETS[socketId].emit("kick");
 }
 
 function areSquaresColliding(square2, square1) {
@@ -268,7 +270,7 @@ function players_update() {
 
     //death
     if (player.health <= 0) {
-      player_dead(i);
+      //player_dead(i);
     }
 
     //regeneration
@@ -278,6 +280,67 @@ function players_update() {
         player.health = player.haracteristics.max_health;
       }
     }
+
+    //move
+
+    player.spdX = 0;
+    player.spdY = 0;
+
+    if (player.moving) {
+      var mouse_positon = player.mouse_position;
+      if (mouse_positon.x > player.screen_size.x * 0.75) {
+        mouse_positon.x = player.screen_size.x * 0.75;
+      } else if (mouse_positon.x < player.screen_size.x * 0.25) {
+        mouse_positon.x = player.screen_size.x * 0.25;
+      }
+      if (mouse_positon.y > player.screen_size.y * 0.75) {
+        mouse_positon.y = player.screen_size.y * 0.75;
+      } else if (mouse_positon.y < player.screen_size.y * 0.25) {
+        mouse_positon.y = player.screen_size.y * 0.25;
+      }
+
+      player.spdX =
+        player.parametrs.move_speed *
+        ((mouse_positon.x - player.screen_size.x / 2) /
+          (player.screen_size.x / 4));
+      player.spdY =
+        player.parametrs.move_speed *
+        ((mouse_positon.y - player.screen_size.y / 2) /
+          (player.screen_size.y / 4));
+    }
+
+    //bots' move
+    if (player.bot) {
+      //if (players_data[i].position.x > 5000) {
+      //  players_data[i].spdX = -10;
+      //}
+      for (let p in players_data) {
+        if (p != i) {
+          if (
+            Math.abs(players_data[p].position.x - player.position.x) < 350 &&
+            Math.abs(players_data[p].position.y - player.position.y) < 350
+          ) {
+            players_data[i].spdX =
+              players_data[i].parametrs.move_speed *
+              Math.min(
+                Math.abs(players_data[p].position.x - player.position.x) / 11,
+                1
+              ) *
+              Math.sign(players_data[p].position.x - player.position.x);
+            players_data[i].spdY =
+              players_data[i].parametrs.move_speed *
+              Math.min(
+                Math.abs(players_data[p].position.y - player.position.y) / 11,
+                1
+              ) *
+              Math.sign(players_data[p].position.y - player.position.y);
+          }
+        }
+      }
+    }
+
+    player.position.x += player.spdX;
+    player.position.y += player.spdY;
 
     //colision
     //with meal
@@ -364,6 +427,10 @@ function players_update() {
             player.score += player2.score / 2;
             player_dead(p);
           }
+          if (player.health <= 0) {
+            player2.score += player.score / 2;
+            player_dead(i);
+          }
         }
       }
 
@@ -375,36 +442,6 @@ function players_update() {
     }
 
     player.coliding = false;
-
-    //move
-    if (player.moving) {
-      var mouse_positon = player.mouse_position;
-      if (mouse_positon.x > player.screen_size.x * 0.75) {
-        mouse_positon.x = player.screen_size.x * 0.75;
-      } else if (mouse_positon.x < player.screen_size.x * 0.25) {
-        mouse_positon.x = player.screen_size.x * 0.25;
-      }
-      if (mouse_positon.y > player.screen_size.y * 0.75) {
-        mouse_positon.y = player.screen_size.y * 0.75;
-      } else if (mouse_positon.y < player.screen_size.y * 0.25) {
-        mouse_positon.y = player.screen_size.y * 0.25;
-      }
-
-      player.spdX =
-        player.parametrs.move_speed *
-        ((mouse_positon.x - player.screen_size.x / 2) /
-          (player.screen_size.x / 4));
-      player.spdY =
-        player.parametrs.move_speed *
-        ((mouse_positon.y - player.screen_size.y / 2) /
-          (player.screen_size.y / 4));
-
-      //player.spdX = 10
-      //player.spdY = 10
-
-      player.position.x += player.spdX;
-      player.position.y += player.spdY;
-    }
 
     //border
 
@@ -474,17 +511,23 @@ function meals_update() {
   }
 }
 
+function bots_update() {
+  if (Object.keys(players_data).length < 3) {
+    player_join(`bot${Math.random()}bot`, "nigger1", "FFA1", true);
+  }
+}
+
 setInterval(function () {
   meals_update();
-  io.emit("init", { meal: meals_to_add });
+  bots_update();
   players_update();
   for (var i in players_data) {
-    let mode = players_data[i].mode;
-    SOCKETS[i].emit("update", { player: get_update_pack(mode) });
+    if (!players_data[i].bot) {
+      let mode = players_data[i].mode;
+      SOCKETS[i].emit("update", { player: get_update_pack(mode) });
+    }
   }
-  //io.emit("update", {
-  //  player: players_update(),
-  //});
+  io.emit("init", { meal: meals_to_add });
   io.emit("remove", { meal: meals_to_remove });
   meals_to_add = {};
   meals_to_remove = [];
