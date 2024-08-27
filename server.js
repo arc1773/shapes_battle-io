@@ -213,7 +213,7 @@ function player_join(socketId, nickname, mode, bot) {
     haracteristics: {
       max_health: 50,
       damage: 0.3,
-      regeneration: 0.18,
+      regeneration: 0.06,
     },
     health: 50,
     to_update_param: {
@@ -264,7 +264,7 @@ function players_update() {
     //update_haracteristics
     player.haracteristics.max_health = player.parametrs.size * 2.5;
     player.haracteristics.damage = player.parametrs.number_of_angles / 10;
-    player.haracteristics.regeneration = player.parametrs.rotation_speed * 3;
+    player.haracteristics.regeneration = player.parametrs.rotation_speed;
 
     player.angle += player.parametrs.rotation_speed;
 
