@@ -282,7 +282,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("leave_game", function () {
-    delete players.get(socket.id);
+    players.get(socket.id).death();
     socket.emit("kick");
   });
 
@@ -335,7 +335,7 @@ function player_dead(socketId) {
   if (!players.get(socketId).bot) {
     SOCKETS[socketId].emit("kick");
   }
-  players.get(socket.id).death()
+  players.get(socketId).death()
 }
 
 function areSquaresColliding(square2, square1) {
@@ -415,46 +415,46 @@ function players_update() {
       }
     }
     //with players
-    for (var p of players.keys()) {
-      var player2 = players.get(p);
-      if (i != p) {
-        if (
-          sprawdzKolizjePoligonow(
-            player.position.x,
-            player.position.y,
-            player.parametrs.size,
-            player.parametrs.number_of_angles,
-            player.angle,
-            player2.position.x,
-            player2.position.y,
-            player2.parametrs.size,
-            player2.parametrs.number_of_angles,
-            player2.angle
-          )
-        ) {
-          player.coliding = true;
-          player2.coliding = true;
-          player.health -= player2.haracteristics.damage;
-          player2.health -= player.haracteristics.damage;
-          if (player2.health <= 0) {
-            player.score += player2.score / 2;
-            player_dead(p);
-          }
-          if (player.health <= 0) {
-            player2.score += player.score / 2;
-            player_dead(i);
-          }
-        }
-      }
-
-      if (player.coliding) {
-        player.parametrs.color = "red";
-      } else {
-        player.parametrs.color = "black";
-      }
-    }
-
-    player.coliding = false;
+    //for (var p of players.keys()) {
+    //  var player2 = players.get(p);
+    //  if (i != p) {
+    //    if (
+    //      sprawdzKolizjePoligonow(
+    //        player.position.x,
+    //        player.position.y,
+    //        player.parametrs.size,
+    //        player.parametrs.number_of_angles,
+    //        player.angle,
+    //        player2.position.x,
+    //        player2.position.y,
+    //        player2.parametrs.size,
+    //        player2.parametrs.number_of_angles,
+    //        player2.angle
+    //      )
+    //    ) {
+    //      player.coliding = true;
+    //      player2.coliding = true;
+    //      player.health -= player2.haracteristics.damage;
+    //      player2.health -= player.haracteristics.damage;
+    //      if (player2.health <= 0) {
+    //        player.score += player2.score / 2;
+    //        player_dead(p);
+    //      }
+    //      if (player.health <= 0) {
+    //        player2.score += player.score / 2;
+    //        player_dead(i);
+    //      }
+    //    }
+    //  }
+//
+    //  if (player.coliding) {
+    //    player.parametrs.color = "red";
+    //  } else {
+    //    player.parametrs.color = "black";
+    //  }
+    //}
+//
+    //player.coliding = false;
 
     //border
 
