@@ -159,12 +159,14 @@ noButton.addEventListener("click",()=>{
 
 
 
+var last_canvas_size = { x: 500, y: 500 }
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   wc = canvas.width;
   hc = canvas.height;
+  if(last_canvas_size != { x: wc, y: hc })
   socket.emit("change_canvas_size", { x: wc, y: hc });
 }
 

@@ -9,13 +9,13 @@
 
 function generujPunktyPoligonu(x, y, size, liczbaKatow, katNachylenia) {
   const kat = (2 * Math.PI) / liczbaKatow;
-  const punkty = [];
+  const punkty = new Array(liczbaKatow);
 
   for (let i = 0; i < liczbaKatow; i++) {
     const currentAngle = i * kat + katNachylenia;
     const px = x + size * Math.cos(currentAngle);
     const py = y + size * Math.sin(currentAngle);
-    punkty.push({ x: px, y: py });
+    punkty[i] = { x: px, y: py };
   }
 
   return punkty;
@@ -120,8 +120,145 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+class Player {
+  constructor(id, nickname, mode, bot) {
+    this.id = id;
+    this.position = {
+      x: Math.random() * 10000,
+      y: Math.random() * 10000,
+    };
+    this.mouse_position = {
+      x: 250,
+      y: 250,
+    };
+    this.screen_size = {
+      x: 500,
+      y: 500,
+    };
+    this.parametrs = {
+      move_speed: 12, //move_speed
+      size: 20, //health
+      number_of_angles: 3, //damage
+      rotation_speed: 0.06, //regeneration
+      color: "black",
+    };
+    this.haracteristics = {
+      max_health: 50,
+      damage: 0.3,
+      regeneration: 0.06,
+    };
+    this.health = 50;
+    this.to_update_param = {
+      move_speed: 0,
+      size: 0,
+      number_of_angles: 0,
+      rotation_speed: 0,
+    };
+    this.levels = {
+      move_speed: 1,
+      size: 1,
+      number_of_angles: 1,
+      rotation_speed: 1,
+    };
+    this.moving = false;
+    this.angle = 0;
+    this.spdX = 0;
+    this.spdY = 0;
+    this.coliding = false;
+    this.nickname = nickname;
+    this.score = 0;
+    this.mode = mode;
+    this.bot = bot;
+  }
+  update() {
+    this.move()
+
+    this.regeneration();
+
+    this.angle += this.parametrs.rotation_speed;
+
+    this.haracteristics.max_health = this.parametrs.size * 2.5;
+    this.haracteristics.damage = this.parametrs.number_of_angles / 10;
+    this.haracteristics.regeneration = this.parametrs.rotation_speed;
+  }
+
+  move() {
+    //move
+
+    this.spdX = 0;
+    this.spdY = 0;
+
+    if (this.moving) {
+      var mouse_positon = this.mouse_position;
+      if (mouse_positon.x > this.screen_size.x * 0.75) {
+        mouse_positon.x = this.screen_size.x * 0.75;
+      } else if (mouse_positon.x < this.screen_size.x * 0.25) {
+        mouse_positon.x = this.screen_size.x * 0.25;
+      }
+      if (mouse_positon.y > this.screen_size.y * 0.75) {
+        mouse_positon.y = this.screen_size.y * 0.75;
+      } else if (mouse_positon.y < this.screen_size.y * 0.25) {
+        mouse_positon.y = this.screen_size.y * 0.25;
+      }
+
+      this.spdX =
+        this.parametrs.move_speed *
+        ((mouse_positon.x - this.screen_size.x / 2) /
+          (this.screen_size.x / 4));
+      this.spdY =
+        this.parametrs.move_speed *
+        ((mouse_positon.y - this.screen_size.y / 2) /
+          (this.screen_size.y / 4));
+    }
+
+    //bots' move
+    if (this.bot) {
+      for (let p of players.keys()) {
+        if (p != this.id) {
+          var player2 = players.get(p)
+          if (
+            Math.abs(player2.position.x - this.position.x) < 350 &&
+            Math.abs(player2.position.y - this.position.y) < 350
+          ) {
+            this.spdX =
+              this.parametrs.move_speed *
+              Math.min(
+                Math.abs(player2.position.x - this.position.x) / 11,
+                1
+              ) *
+              Math.sign(player2.position.x - this.position.x);
+            this.spdY =
+              this.parametrs.move_speed *
+              Math.min(
+                Math.abs(player2.position.y - this.position.y) / 11,
+                1
+              ) *
+              Math.sign(player2.position.y - this.position.y);
+          }
+        }
+      }
+    }
+
+    this.position.x += this.spdX;
+    this.position.y += this.spdY;
+  }
+  regeneration() {
+    if (this.health < this.haracteristics.max_health) {
+      this.health += this.haracteristics.regeneration;
+      if (this.health > this.haracteristics.max_health) {
+        this.health = this.haracteristics.max_health;
+      }
+    }
+  }
+  death(){
+    players.delete(this.id)
+  }
+}
+
+var players = new Map();
+
 var SOCKETS = {};
-var players_data = {}; //123123:{...},
+//var players_data = {}; //123123:{...},
 var meals_data = {};
 
 const SECRET_KEY = "6Lf5GS8qAAAAANvjUa9povmDhIPL-90CK-et_kw8";
@@ -138,27 +275,30 @@ io.on("connection", (socket) => {
   socket.emit("init", { meal: meals_data });
 
   socket.on("join_to_game", function (data) {
-    player_join(socket.id, data.nickname, data.mode, false);
+    players.set(
+      socket.id,
+      new Player(socket.id, data.nickname, data.mode, false)
+    );
   });
 
   socket.on("leave_game", function () {
-    delete players_data[socket.id];
+    delete players.get(socket.id);
     socket.emit("kick");
   });
 
   socket.on("stop_start_move", function () {
-    players_data[socket.id].moving = !players_data[socket.id].moving;
+    players.get(socket.id).moving = !players.get(socket.id).moving;
   });
 
   socket.on("mouse_position", function (data) {
-    if (players_data[socket.id]) {
-      players_data[socket.id].mouse_position = data;
+    if (players.get(socket.id)) {
+      players.get(socket.id).mouse_position = data;
     }
   });
 
   socket.on("change_canvas_size", function (data) {
-    if (players_data[socket.id]) {
-      players_data[socket.id].screen_size = data;
+    if (players.get(socket.id)) {
+      players.get(socket.id).screen_size = data;
     }
   });
 
@@ -183,67 +323,19 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    delete players_data[socket.id];
     delete SOCKETS[socket.id];
+    if(players.get(socket.id)){
+      players.get(socket.id).death()
+    }
     console.log("user disconnected");
   });
 });
 
-function player_join(socketId, nickname, mode, bot) {
-  players_data[socketId] = {
-    position: {
-      x: Math.random() * 10000,
-      y: Math.random() * 10000,
-    },
-    mouse_position: {
-      x: 250,
-      y: 250,
-    },
-    screen_size: {
-      x: 500,
-      y: 500,
-    },
-    parametrs: {
-      move_speed: 12, //move_speed
-      size: 20, //health
-      number_of_angles: 3, //damage
-      rotation_speed: 0.06, //regeneration
-      color: "black",
-    },
-    haracteristics: {
-      max_health: 50,
-      damage: 0.3,
-      regeneration: 0.06,
-    },
-    health: 50,
-    to_update_param: {
-      move_speed: 0,
-      size: 0,
-      number_of_angles: 0,
-      rotation_speed: 0,
-    },
-    levels: {
-      move_speed: 1,
-      size: 1,
-      number_of_angles: 1,
-      rotation_speed: 1,
-    },
-    moving: false,
-    angle: 0,
-    spdX: 0,
-    spdY: 0,
-    coliding: false,
-    nickname: nickname,
-    score: 0,
-    mode: mode,
-    bot: bot,
-  };
-}
 function player_dead(socketId) {
-  if (!players_data[socketId].bot) {
+  if (!players.get(socketId).bot) {
     SOCKETS[socketId].emit("kick");
   }
-  delete players_data[socketId];
+  players.get(socket.id).death()
 }
 
 function areSquaresColliding(square2, square1) {
@@ -258,89 +350,10 @@ function areSquaresColliding(square2, square1) {
 }
 
 function players_update() {
-  for (var i in players_data) {
-    var player = players_data[i];
+  for (var i of players.keys()) {
+    var player = players.get(i);
 
-    //update_haracteristics
-    player.haracteristics.max_health = player.parametrs.size * 2.5;
-    player.haracteristics.damage = player.parametrs.number_of_angles / 10;
-    player.haracteristics.regeneration = player.parametrs.rotation_speed;
-
-    player.angle += player.parametrs.rotation_speed;
-
-    //death
-    if (player.health <= 0) {
-      //player_dead(i);
-    }
-
-    //regeneration
-    if (player.health < player.haracteristics.max_health) {
-      player.health += player.haracteristics.regeneration;
-      if (player.health > player.haracteristics.max_health) {
-        player.health = player.haracteristics.max_health;
-      }
-    }
-
-    //move
-
-    player.spdX = 0;
-    player.spdY = 0;
-
-    if (player.moving) {
-      var mouse_positon = player.mouse_position;
-      if (mouse_positon.x > player.screen_size.x * 0.75) {
-        mouse_positon.x = player.screen_size.x * 0.75;
-      } else if (mouse_positon.x < player.screen_size.x * 0.25) {
-        mouse_positon.x = player.screen_size.x * 0.25;
-      }
-      if (mouse_positon.y > player.screen_size.y * 0.75) {
-        mouse_positon.y = player.screen_size.y * 0.75;
-      } else if (mouse_positon.y < player.screen_size.y * 0.25) {
-        mouse_positon.y = player.screen_size.y * 0.25;
-      }
-
-      player.spdX =
-        player.parametrs.move_speed *
-        ((mouse_positon.x - player.screen_size.x / 2) /
-          (player.screen_size.x / 4));
-      player.spdY =
-        player.parametrs.move_speed *
-        ((mouse_positon.y - player.screen_size.y / 2) /
-          (player.screen_size.y / 4));
-    }
-
-    //bots' move
-    if (player.bot) {
-      //if (players_data[i].position.x > 5000) {
-      //  players_data[i].spdX = -10;
-      //}
-      for (let p in players_data) {
-        if (p != i) {
-          if (
-            Math.abs(players_data[p].position.x - player.position.x) < 350 &&
-            Math.abs(players_data[p].position.y - player.position.y) < 350
-          ) {
-            players_data[i].spdX =
-              players_data[i].parametrs.move_speed *
-              Math.min(
-                Math.abs(players_data[p].position.x - player.position.x) / 11,
-                1
-              ) *
-              Math.sign(players_data[p].position.x - player.position.x);
-            players_data[i].spdY =
-              players_data[i].parametrs.move_speed *
-              Math.min(
-                Math.abs(players_data[p].position.y - player.position.y) / 11,
-                1
-              ) *
-              Math.sign(players_data[p].position.y - player.position.y);
-          }
-        }
-      }
-    }
-
-    player.position.x += player.spdX;
-    player.position.y += player.spdY;
+    player.update();
 
     //colision
     //with meal
@@ -368,7 +381,7 @@ function players_update() {
             player.levels.size += 1;
             player.parametrs.size = 1.5 * player.levels.size + 20;
           }
-        } else if (meals_data[n].color == "pink") {
+        } else if (meals_data[n].color == "orange") {
           player.to_update_param.move_speed += 1;
           if (player.to_update_param.move_speed >= 10) {
             player.to_update_param.move_speed = 0;
@@ -402,8 +415,8 @@ function players_update() {
       }
     }
     //with players
-    for (var p in players_data) {
-      var player2 = players_data[p];
+    for (var p of players.keys()) {
+      var player2 = players.get(p);
       if (i != p) {
         if (
           sprawdzKolizjePoligonow(
@@ -461,8 +474,8 @@ function players_update() {
 
 function get_update_pack(mode) {
   var pack = {};
-  for (var i in players_data) {
-    var player = players_data[i];
+  for (var i of players.keys()) {
+    var player = players.get(i);
     if (player.mode == mode) {
       pack[i] = {
         position: player.position,
@@ -490,7 +503,7 @@ function meals_update() {
       x: 10000 * Math.random(),
       y: 10000 * Math.random(),
     };
-    let color_of_meal = "pink";
+    let color_of_meal = "orange";
 
     let color_num = Math.random();
     if (color_num > 0.7) {
@@ -498,7 +511,7 @@ function meals_update() {
     } else if (color_num > 0.4) {
       color_of_meal = "blue";
     } else if (color_num >= 0.1) {
-      color_of_meal = "pink";
+      color_of_meal = "orange";
     } else if (color_num < 0.1) {
       color_of_meal = "green";
     }
@@ -512,8 +525,8 @@ function meals_update() {
 }
 
 function bots_update() {
-  if (Object.keys(players_data).length < 3) {
-    player_join(`bot${Math.random()}bot`, "nigger1", "FFA1", true);
+  if (players.keys().length < 3) {
+    //player_join(`bot${Math.random()}bot`, "nigger1", "FFA1", true);
   }
 }
 
@@ -521,9 +534,10 @@ setInterval(function () {
   meals_update();
   bots_update();
   players_update();
-  for (var i in players_data) {
-    if (!players_data[i].bot) {
-      let mode = players_data[i].mode;
+  for (var i of players.keys()) {
+    let player = players.get(i);
+    if (!player.bot) {
+      let mode = player.mode;
       SOCKETS[i].emit("update", { player: get_update_pack(mode) });
     }
   }
