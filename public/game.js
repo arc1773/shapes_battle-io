@@ -43,7 +43,7 @@ function drawPoligon(x, y, size, liczbaKatow, katNachylenia, color = "black") {
 function lerp(start, end, t) {
   var playersPos = {};
   for (var i in start) {
-    if(end[i]){
+    if (end[i]) {
       playersPos[i] = {
         x: start[i].position.x + t * (end[i].position.x - start[i].position.x),
         y: start[i].position.y + t * (end[i].position.y - start[i].position.y),
@@ -77,30 +77,31 @@ var meals_data = {};
 
 var captcha_verified = false;
 
-socket.on("init", (data) => {
-  for (var i in data.meal) {
-    meals_data[i] = data.meal[i];
-  }
-});
-
 let previousPlayersPos = null;
 let currentPlayersPos = null;
 
 var interpolatedPlayersPos = null;
 
+socket.on("init", (data) => {
+  for (var i in data.meals) {
+    meals_data[i] = data.meals[i];
+  }
+});
+
 socket.on("update", function (data) {
   previousPlayersPos = currentPlayersPos;
-  currentPlayersPos = data.player;
+  currentPlayersPos = data.players;
 
   t = 0;
 
-  players_data = data.player;
+  players_data = data.players;
   THE_PLAYER = players_data[socket.id];
 });
 
 socket.on("remove", (data) => {
-  for (var i in data.meal) {
-    delete meals_data[data.meal[i]];
+  for (var i in data.meals) {
+    console.log("del");
+    delete meals_data[data.meals[i]];
   }
 });
 
@@ -146,28 +147,25 @@ button_of_exit_game.addEventListener("click", () => {
   button_of_exit_game.style.display = "none";
 });
 
-yesButton.addEventListener("click",()=>{
+yesButton.addEventListener("click", () => {
   socket.emit("leave_game");
   confirm_dialog.style.display = "none";
   button_of_exit_game.style.display = "block";
-})
-noButton.addEventListener("click",()=>{
+});
+noButton.addEventListener("click", () => {
   confirm_dialog.style.display = "none";
   button_of_exit_game.style.display = "block";
-})
+});
 
-
-
-
-var last_canvas_size = { x: 500, y: 500 }
+var last_canvas_size = { x: 500, y: 500 };
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   wc = canvas.width;
   hc = canvas.height;
-  if(last_canvas_size != { x: wc, y: hc })
-  socket.emit("change_canvas_size", { x: wc, y: hc });
+  if (last_canvas_size != { x: wc, y: hc })
+    socket.emit("change_canvas_size", { x: wc, y: hc });
 }
 
 function draw_player(pos, data) {
@@ -199,13 +197,14 @@ function draw_player(pos, data) {
 
 function draw_meal(data) {
   let player_p = interpolatedPlayersPos[socket.id];
-  if(!player_p){
-    player_p = players_data[socket.id]
-
+  if (!player_p) {
+    player_p = players_data[socket.id];
   }
   let drawX = data.position.x - (player_p.x - wc / 2);
   let drawY = data.position.y - (player_p.y - hc / 2);
   ctx.fillStyle = data.color;
+
+  //ctx.fillStyle = data.color;
   ctx.fillRect(drawX, drawY, 7, 7);
 }
 
@@ -252,8 +251,8 @@ function draw_minimap() {
       ctx.fillStyle = "blue";
     }
     ctx.fillRect(
-      (player.position.x / 100)-1.5 + (wc - 105),
-      (player.position.y / 100)-1.5 + (hc - 105),
+      player.position.x / 100 - 1.5 + (wc - 105),
+      player.position.y / 100 - 1.5 + (hc - 105),
       3,
       3
     );
@@ -354,6 +353,18 @@ function draw_helath() {
   ctx.strokeRect(wc / 2 - 25, hc / 2 - THE_PLAYER.parametrs.size - 30, 50, 10);
 }
 
+function draw() {
+  draw_map();
+  for (var i in meals_data) {
+    draw_meal(meals_data[i]);
+  }
+  for (var i in interpolatedPlayersPos) {
+    draw_player(interpolatedPlayersPos[i], players_data[i]);
+  }
+  draw_minimap();
+  draw_helath();
+}
+
 setInterval(function () {
   var recaptchaBadge = document.querySelector(".grecaptcha-badge");
   resizeCanvas();
@@ -371,15 +382,7 @@ setInterval(function () {
     update_list_of_top_5();
     ctx.clearRect(0, 0, 500, 500);
 
-    draw_map();
-    for (var i in meals_data) {
-      draw_meal(meals_data[i]);
-    }
-    for (var i in interpolatedPlayersPos) {
-      draw_player(interpolatedPlayersPos[i], players_data[i]);
-    }
-    draw_minimap();
-    draw_helath();
+    draw();
   } else {
     main_menue_div.style.display = "block";
     game_div.style.display = "none";

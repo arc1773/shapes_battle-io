@@ -39,32 +39,9 @@ function rzutujNaOś(punkty, axis) {
 }
 
 function sprawdzKolizjePoligonow(
-  x1,
-  y1,
-  size1,
-  liczbaKatow1,
-  katNachylenia1,
-  x2,
-  y2,
-  size2,
-  liczbaKatow2,
-  katNachylenia2
+  punkty1,
+  punkty2
 ) {
-  const punkty1 = generujPunktyPoligonu(
-    x1,
-    y1,
-    size1,
-    liczbaKatow1,
-    katNachylenia1
-  );
-  const punkty2 = generujPunktyPoligonu(
-    x2,
-    y2,
-    size2,
-    liczbaKatow2,
-    katNachylenia2
-  );
-
   const osie = [];
 
   // Generujemy osie dla pierwszego poligonu
@@ -171,7 +148,7 @@ class Player {
     this.bot = bot;
   }
   update() {
-    this.move()
+    this.move();
 
     this.regeneration();
 
@@ -203,36 +180,28 @@ class Player {
 
       this.spdX =
         this.parametrs.move_speed *
-        ((mouse_positon.x - this.screen_size.x / 2) /
-          (this.screen_size.x / 4));
+        ((mouse_positon.x - this.screen_size.x / 2) / (this.screen_size.x / 4));
       this.spdY =
         this.parametrs.move_speed *
-        ((mouse_positon.y - this.screen_size.y / 2) /
-          (this.screen_size.y / 4));
+        ((mouse_positon.y - this.screen_size.y / 2) / (this.screen_size.y / 4));
     }
 
     //bots' move
     if (this.bot) {
       for (let p of players.keys()) {
         if (p != this.id) {
-          var player2 = players.get(p)
+          var player2 = players.get(p);
           if (
             Math.abs(player2.position.x - this.position.x) < 350 &&
             Math.abs(player2.position.y - this.position.y) < 350
           ) {
             this.spdX =
               this.parametrs.move_speed *
-              Math.min(
-                Math.abs(player2.position.x - this.position.x) / 11,
-                1
-              ) *
+              Math.min(Math.abs(player2.position.x - this.position.x) / 11, 1) *
               Math.sign(player2.position.x - this.position.x);
             this.spdY =
               this.parametrs.move_speed *
-              Math.min(
-                Math.abs(player2.position.y - this.position.y) / 11,
-                1
-              ) *
+              Math.min(Math.abs(player2.position.y - this.position.y) / 11, 1) *
               Math.sign(player2.position.y - this.position.y);
           }
         }
@@ -250,8 +219,8 @@ class Player {
       }
     }
   }
-  death(){
-    players.delete(this.id)
+  death() {
+    players.delete(this.id);
   }
 }
 
@@ -272,13 +241,12 @@ io.on("connection", (socket) => {
   console.log("a user connected");
   SOCKETS[socket.id] = socket;
 
-  socket.emit("init", { meal: meals_data });
-
   socket.on("join_to_game", function (data) {
     players.set(
       socket.id,
       new Player(socket.id, data.nickname, data.mode, false)
     );
+    socket.emit("init", get_first_init_pack(players.get(socket.id).mode));
   });
 
   socket.on("leave_game", function () {
@@ -324,8 +292,8 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     delete SOCKETS[socket.id];
-    if(players.get(socket.id)){
-      players.get(socket.id).death()
+    if (players.get(socket.id)) {
+      players.get(socket.id).death();
     }
     console.log("user disconnected");
   });
@@ -335,7 +303,7 @@ function player_dead(socketId) {
   if (!players.get(socketId).bot) {
     SOCKETS[socketId].emit("kick");
   }
-  players.get(socketId).death()
+  players.get(socketId).death();
 }
 
 function areSquaresColliding(square2, square1) {
@@ -350,111 +318,128 @@ function areSquaresColliding(square2, square1) {
 }
 
 function players_update() {
+
+  var map_of_points_of_poligon_of_players = new Map();
+
+  for(let p of players.keys()){
+    let player = players.get(p)
+    map_of_points_of_poligon_of_players.set(
+      player.id,
+      generujPunktyPoligonu(
+        player.position.x,
+        player.position.y,
+        player.parametrs.size,
+        player.parametrs.number_of_angles,
+        player.angle
+      )
+    );
+  }
+
   for (var i of players.keys()) {
     var player = players.get(i);
 
     player.update();
 
     //colision
+
+    var points_of_poligon_of_the_player=map_of_points_of_poligon_of_players.get(player.id)
+
     //with meal
     for (var n in meals_data) {
       var meal = meals_data[n];
-      if (
-        areSquaresColliding(
-          {
-            x: player.position.x - player.parametrs.size / 2,
-            y: player.position.y - player.parametrs.size / 2,
-            size: player.parametrs.size,
-          },
-          {
-            x: meal.position.x - 7 / 2,
-            y: meal.position.y - 7 / 2,
-            size: 7,
+      if (meal.mode == player.mode) {
+        if (
+          areSquaresColliding(
+            {
+              x: player.position.x - player.parametrs.size / 2,
+              y: player.position.y - player.parametrs.size / 2,
+              size: player.parametrs.size,
+            },
+            {
+              x: meal.position.x - 7 / 2,
+              y: meal.position.y - 7 / 2,
+              size: 7,
+            }
+          )
+        ) {
+          player.score += 1;
+          if (meals_data[n].color == "red") {
+            player.to_update_param.size += 1;
+            if (player.to_update_param.size >= 10) {
+              player.to_update_param.size = 0;
+              player.levels.size += 1;
+              player.parametrs.size = 1.5 * player.levels.size + 20;
+            }
+          } else if (meals_data[n].color == "orange") {
+            player.to_update_param.move_speed += 1;
+            if (player.to_update_param.move_speed >= 10) {
+              player.to_update_param.move_speed = 0;
+              player.levels.move_speed += 1;
+              player.parametrs.move_speed = logFunction(
+                player.levels.move_speed,
+                3,
+                15
+              );
+            }
+          } else if (meals_data[n].color == "green") {
+            player.to_update_param.number_of_angles += 1;
+            if (player.to_update_param.number_of_angles >= 10) {
+              player.to_update_param.number_of_angles = 0;
+              player.levels.number_of_angles += 1;
+              player.parametrs.number_of_angles =
+                player.levels.number_of_angles + 2;
+            }
+          } else if (meals_data[n].color == "blue") {
+            player.to_update_param.rotation_speed += 1;
+            if (player.to_update_param.rotation_speed >= 10) {
+              player.to_update_param.rotation_speed = 0;
+              player.levels.rotation_speed += 1;
+              player.parametrs.rotation_speed =
+                player.levels.rotation_speed * 0.06;
+            }
           }
-        )
-      ) {
-        player.score += 1;
-        if (meals_data[n].color == "red") {
-          player.to_update_param.size += 1;
-          if (player.to_update_param.size >= 10) {
-            player.to_update_param.size = 0;
-            player.levels.size += 1;
-            player.parametrs.size = 1.5 * player.levels.size + 20;
-          }
-        } else if (meals_data[n].color == "orange") {
-          player.to_update_param.move_speed += 1;
-          if (player.to_update_param.move_speed >= 10) {
-            player.to_update_param.move_speed = 0;
-            player.levels.move_speed += 1;
-            player.parametrs.move_speed = logFunction(
-              player.levels.move_speed,
-              3,
-              15
-            );
-          }
-        } else if (meals_data[n].color == "green") {
-          player.to_update_param.number_of_angles += 1;
-          if (player.to_update_param.number_of_angles >= 10) {
-            player.to_update_param.number_of_angles = 0;
-            player.levels.number_of_angles += 1;
-            player.parametrs.number_of_angles =
-              player.levels.number_of_angles + 2;
-          }
-        } else if (meals_data[n].color == "blue") {
-          player.to_update_param.rotation_speed += 1;
-          if (player.to_update_param.rotation_speed >= 10) {
-            player.to_update_param.rotation_speed = 0;
-            player.levels.rotation_speed += 1;
-            player.parametrs.rotation_speed =
-              player.levels.rotation_speed * 0.06;
-          }
+          meals_to_remove[meals_data[n].mode].push(n);
+          delete meals_data[n];
         }
-
-        delete meals_data[n];
-        meals_to_remove.push(n);
       }
     }
     //with players
-    //for (var p of players.keys()) {
-    //  var player2 = players.get(p);
-    //  if (i != p) {
-    //    if (
-    //      sprawdzKolizjePoligonow(
-    //        player.position.x,
-    //        player.position.y,
-    //        player.parametrs.size,
-    //        player.parametrs.number_of_angles,
-    //        player.angle,
-    //        player2.position.x,
-    //        player2.position.y,
-    //        player2.parametrs.size,
-    //        player2.parametrs.number_of_angles,
-    //        player2.angle
-    //      )
-    //    ) {
-    //      player.coliding = true;
-    //      player2.coliding = true;
-    //      player.health -= player2.haracteristics.damage;
-    //      player2.health -= player.haracteristics.damage;
-    //      if (player2.health <= 0) {
-    //        player.score += player2.score / 2;
-    //        player_dead(p);
-    //      }
-    //      if (player.health <= 0) {
-    //        player2.score += player.score / 2;
-    //        player_dead(i);
-    //      }
-    //    }
-    //  }
-//
-    //  if (player.coliding) {
-    //    player.parametrs.color = "red";
-    //  } else {
-    //    player.parametrs.color = "black";
-    //  }
-    //}
-//
-    //player.coliding = false;
+    for (var p of players.keys()) {
+      
+      if (i != p) {
+        var player2 = players.get(p);
+        if (player.mode == player2.mode) {
+          var points_of_poligon_of_second_player=map_of_points_of_poligon_of_players.get(player2.id)
+          if (
+            sprawdzKolizjePoligonow(
+              points_of_poligon_of_the_player,
+              points_of_poligon_of_second_player
+            )
+          ) {
+            player.coliding = true;
+            player2.coliding = true;
+            player.health -= player2.haracteristics.damage;
+            player2.health -= player.haracteristics.damage;
+            if (player2.health <= 0) {
+              player.score += player2.score / 2;
+              player_dead(p);
+            }
+            if (player.health <= 0) {
+              player2.score += player.score / 2;
+              player_dead(i);
+            }
+          }
+        }
+      }
+
+      if (player.coliding) {
+        player.parametrs.color = "red";
+      } else {
+        player.parametrs.color = "black";
+      }
+    }
+
+    player.coliding = false;
 
     //border
 
@@ -472,12 +457,30 @@ function players_update() {
   }
 }
 
-function get_update_pack(mode) {
+function get_first_init_pack(mode) {
+  var pack = { meals: {}, players: {} };
+  for (var i in meals_data) {
+    if (meals_data[i].mode == mode) {
+      pack.meals[i] = meals_data[i];
+    }
+  }
+
+  return pack;
+}
+
+function get_init_pack(mode) {
   var pack = {};
+  pack.meals = meals_to_add[mode];
+  pack.players = players_to_add[mode];
+  return pack;
+}
+
+function get_update_pack(mode) {
+  var pack = { players: {} };
   for (var i of players.keys()) {
     var player = players.get(i);
     if (player.mode == mode) {
-      pack[i] = {
+      pack.players[i] = {
         position: player.position,
         parametrs: player.parametrs,
         to_update_param: player.to_update_param,
@@ -493,8 +496,18 @@ function get_update_pack(mode) {
   return pack;
 }
 
-var meals_to_add = {};
-var meals_to_remove = [];
+function get_remove_pack(mode) {
+  var pack = {};
+  pack.meals = meals_to_remove[mode];
+  pack.players = players_to_remove[mode];
+  return pack;
+}
+
+var meals_to_add = { FFA1: {}, FFA2: {} };
+var meals_to_remove = { FFA1: [], FFA2: [] };
+
+var players_to_add = { FFA1: {}, FFA2: {} };
+var players_to_remove = { FFA1: [], FFA2: [] };
 
 function meals_update() {
   if (Object.keys(meals_data).length < 3000) {
@@ -516,11 +529,17 @@ function meals_update() {
       color_of_meal = "green";
     }
 
+    var mode = "FFA1";
+    if (Math.random() > 0.5) {
+      mode = "FFA2";
+    }
+
     meals_data[id_of_meal] = {
       position: position,
       color: color_of_meal,
+      mode: mode,
     };
-    meals_to_add[id_of_meal] = meals_data[id_of_meal];
+    meals_to_add[mode][id_of_meal] = meals_data[id_of_meal];
   }
 }
 
@@ -534,15 +553,33 @@ setInterval(function () {
   meals_update();
   bots_update();
   players_update();
+
+  var init_packs = {
+    FFA1: get_init_pack("FFA1"),
+    FFA2: get_init_pack("FFA2"),
+  };
+
+  var update_placks = {
+    FFA1: get_update_pack("FFA1"),
+    FFA2: get_update_pack("FFA2"),
+  };
+
+  var remove_packs = {
+    FFA1: get_remove_pack("FFA1"),
+    FFA2: get_remove_pack("FFA2"),
+  };
+
   for (var i of players.keys()) {
     let player = players.get(i);
     if (!player.bot) {
       let mode = player.mode;
-      SOCKETS[i].emit("update", { player: get_update_pack(mode) });
+      SOCKETS[i].emit("init", init_packs[mode]);
+      SOCKETS[i].emit("update", update_placks[mode]);
+      SOCKETS[i].emit("remove", remove_packs[mode]);
     }
   }
-  io.emit("init", { meal: meals_to_add });
-  io.emit("remove", { meal: meals_to_remove });
-  meals_to_add = {};
-  meals_to_remove = [];
+  meals_to_add = { FFA1: {}, FFA2: {} };
+  meals_to_remove = { FFA1: [], FFA2: [] };
+  players_to_add = { FFA1: {}, FFA2: {} };
+  players_to_remove = { FFA1: [], FFA2: [] };
 }, 1000 / 25);
