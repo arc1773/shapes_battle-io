@@ -107,6 +107,8 @@ socket.on("remove", (data) => {
 
 socket.on("kick", () => {
   THE_PLAYER = null;
+  meals_data = {};
+  players_data = {};
 });
 
 var button_of_start_game = document.getElementById("play");

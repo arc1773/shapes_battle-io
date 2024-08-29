@@ -38,10 +38,7 @@ function rzutujNaOś(punkty, axis) {
   return { min, max };
 }
 
-function sprawdzKolizjePoligonow(
-  punkty1,
-  punkty2
-) {
+function sprawdzKolizjePoligonow(punkty1, punkty2) {
   const osie = [];
 
   // Generujemy osie dla pierwszego poligonu
@@ -84,6 +81,12 @@ function logFunction(x, minValue, maxValue) {
   const d = minValue; // Ustawienie minimalnej wartości jako przesunięcia pionowego
 
   return a * Math.log(x) + d;
+}
+
+function obliczOdleglosc(p1, p2) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 const { Console } = require("console");
@@ -318,11 +321,10 @@ function areSquaresColliding(square2, square1) {
 }
 
 function players_update() {
-
   var map_of_points_of_poligon_of_players = new Map();
 
-  for(let p of players.keys()){
-    let player = players.get(p)
+  for (let p of players.keys()) {
+    let player = players.get(p);
     map_of_points_of_poligon_of_players.set(
       player.id,
       generujPunktyPoligonu(
@@ -342,91 +344,96 @@ function players_update() {
 
     //colision
 
-    var points_of_poligon_of_the_player=map_of_points_of_poligon_of_players.get(player.id)
+    var points_of_poligon_of_the_player =
+      map_of_points_of_poligon_of_players.get(player.id);
 
     //with meal
     for (var n in meals_data) {
       var meal = meals_data[n];
       if (meal.mode == player.mode) {
-        if (
-          areSquaresColliding(
-            {
-              x: player.position.x - player.parametrs.size / 2,
-              y: player.position.y - player.parametrs.size / 2,
-              size: player.parametrs.size,
-            },
-            {
-              x: meal.position.x - 7 / 2,
-              y: meal.position.y - 7 / 2,
-              size: 7,
+        if (obliczOdleglosc(player.position, meal.position) < 100) {
+          if (
+            areSquaresColliding(
+              {
+                x: player.position.x - player.parametrs.size / 2,
+                y: player.position.y - player.parametrs.size / 2,
+                size: player.parametrs.size,
+              },
+              {
+                x: meal.position.x - 7 / 2,
+                y: meal.position.y - 7 / 2,
+                size: 7,
+              }
+            )
+          ) {
+            player.score += 1;
+            if (meals_data[n].color == "red") {
+              player.to_update_param.size += 1;
+              if (player.to_update_param.size >= 10) {
+                player.to_update_param.size = 0;
+                player.levels.size += 1;
+                player.parametrs.size = 1.5 * player.levels.size + 20;
+              }
+            } else if (meals_data[n].color == "orange") {
+              player.to_update_param.move_speed += 1;
+              if (player.to_update_param.move_speed >= 10) {
+                player.to_update_param.move_speed = 0;
+                player.levels.move_speed += 1;
+                player.parametrs.move_speed = logFunction(
+                  player.levels.move_speed,
+                  3,
+                  15
+                );
+              }
+            } else if (meals_data[n].color == "green") {
+              player.to_update_param.number_of_angles += 1;
+              if (player.to_update_param.number_of_angles >= 10) {
+                player.to_update_param.number_of_angles = 0;
+                player.levels.number_of_angles += 1;
+                player.parametrs.number_of_angles =
+                  player.levels.number_of_angles + 2;
+              }
+            } else if (meals_data[n].color == "blue") {
+              player.to_update_param.rotation_speed += 1;
+              if (player.to_update_param.rotation_speed >= 10) {
+                player.to_update_param.rotation_speed = 0;
+                player.levels.rotation_speed += 1;
+                player.parametrs.rotation_speed =
+                  player.levels.rotation_speed * 0.06;
+              }
             }
-          )
-        ) {
-          player.score += 1;
-          if (meals_data[n].color == "red") {
-            player.to_update_param.size += 1;
-            if (player.to_update_param.size >= 10) {
-              player.to_update_param.size = 0;
-              player.levels.size += 1;
-              player.parametrs.size = 1.5 * player.levels.size + 20;
-            }
-          } else if (meals_data[n].color == "orange") {
-            player.to_update_param.move_speed += 1;
-            if (player.to_update_param.move_speed >= 10) {
-              player.to_update_param.move_speed = 0;
-              player.levels.move_speed += 1;
-              player.parametrs.move_speed = logFunction(
-                player.levels.move_speed,
-                3,
-                15
-              );
-            }
-          } else if (meals_data[n].color == "green") {
-            player.to_update_param.number_of_angles += 1;
-            if (player.to_update_param.number_of_angles >= 10) {
-              player.to_update_param.number_of_angles = 0;
-              player.levels.number_of_angles += 1;
-              player.parametrs.number_of_angles =
-                player.levels.number_of_angles + 2;
-            }
-          } else if (meals_data[n].color == "blue") {
-            player.to_update_param.rotation_speed += 1;
-            if (player.to_update_param.rotation_speed >= 10) {
-              player.to_update_param.rotation_speed = 0;
-              player.levels.rotation_speed += 1;
-              player.parametrs.rotation_speed =
-                player.levels.rotation_speed * 0.06;
-            }
+            meals_to_remove[meals_data[n].mode].push(n);
+            delete meals_data[n];
           }
-          meals_to_remove[meals_data[n].mode].push(n);
-          delete meals_data[n];
         }
       }
     }
     //with players
     for (var p of players.keys()) {
-      
       if (i != p) {
         var player2 = players.get(p);
         if (player.mode == player2.mode) {
-          var points_of_poligon_of_second_player=map_of_points_of_poligon_of_players.get(player2.id)
-          if (
-            sprawdzKolizjePoligonow(
-              points_of_poligon_of_the_player,
-              points_of_poligon_of_second_player
-            )
-          ) {
-            player.coliding = true;
-            player2.coliding = true;
-            player.health -= player2.haracteristics.damage;
-            player2.health -= player.haracteristics.damage;
-            if (player2.health <= 0) {
-              player.score += player2.score / 2;
-              player_dead(p);
-            }
-            if (player.health <= 0) {
-              player2.score += player.score / 2;
-              player_dead(i);
+          if (obliczOdleglosc(player.position, player2.position) < 100) {
+            var points_of_poligon_of_second_player =
+              map_of_points_of_poligon_of_players.get(player2.id);
+            if (
+              sprawdzKolizjePoligonow(
+                points_of_poligon_of_the_player,
+                points_of_poligon_of_second_player
+              )
+            ) {
+              player.coliding = true;
+              player2.coliding = true;
+              player.health -= player2.haracteristics.damage;
+              player2.health -= player.haracteristics.damage;
+              if (player2.health <= 0) {
+                player.score += player2.score / 2;
+                player_dead(p);
+              }
+              if (player.health <= 0) {
+                player2.score += player.score / 2;
+                player_dead(i);
+              }
             }
           }
         }
