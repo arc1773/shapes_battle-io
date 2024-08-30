@@ -47,6 +47,7 @@ function lerp(start, end, t) {
       playersPos[i] = {
         x: start[i].position.x + t * (end[i].position.x - start[i].position.x),
         y: start[i].position.y + t * (end[i].position.y - start[i].position.y),
+        angle: start[i].angle + t * (end[i].angle - start[i].angle)
       };
     }
   }
@@ -83,25 +84,36 @@ let currentPlayersPos = null;
 var interpolatedPlayersPos = null;
 
 socket.on("init", (data) => {
-  for (var i in data.meals) {
+  for (let i in data.meals) {
     meals_data[i] = data.meals[i];
   }
+  for (let i in data.players) {
+    players_data[i] = data.players[i];
+  }
+
 });
 
 socket.on("update", function (data) {
+  for( let i in data.players){
+    for(let m in data.players[i]){
+      players_data[i][m] = data.players[i][m]
+    }
+    
+  }
+  THE_PLAYER = players_data[socket.id];
+
   previousPlayersPos = currentPlayersPos;
   currentPlayersPos = data.players;
 
   t = 0;
-
-  players_data = data.players;
-  THE_PLAYER = players_data[socket.id];
 });
 
 socket.on("remove", (data) => {
   for (var i in data.meals) {
-    console.log("del");
     delete meals_data[data.meals[i]];
+  }
+  for (var i in data.players) {
+    delete players_data[data.players[i]];
   }
 });
 
@@ -179,7 +191,7 @@ function draw_player(pos, data) {
     drawY,
     data.parametrs.size,
     data.parametrs.number_of_angles,
-    data.angle,
+    pos.angle,
     data.parametrs.color
   );
 
@@ -374,7 +386,7 @@ setInterval(function () {
     if (recaptchaBadge) {
       recaptchaBadge.style.display = "none"; // lub użyj visibility: hidden;
     }
-    t += 1 / 5;
+    t += 1 / 10;
 
     interpolatedPlayersPos = lerp(previousPlayersPos, currentPlayersPos, t);
 

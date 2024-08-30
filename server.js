@@ -245,11 +245,7 @@ io.on("connection", (socket) => {
   SOCKETS[socket.id] = socket;
 
   socket.on("join_to_game", function (data) {
-    players.set(
-      socket.id,
-      new Player(socket.id, data.nickname, data.mode, false)
-    );
-    socket.emit("init", get_first_init_pack(players.get(socket.id).mode));
+    add_player(socket.id, data.nickname, data.mode);
   });
 
   socket.on("leave_game", function () {
@@ -302,10 +298,32 @@ io.on("connection", (socket) => {
   });
 });
 
+function add_player(socketId, nickname, mode) {
+  players.set(socketId, new Player(socketId, nickname, mode, false));
+  let player = players.get(socketId);
+  players_to_add[mode][socketId] = {
+    position: player.position,
+    parametrs: player.parametrs,
+    to_update_param: player.to_update_param,
+    angle: player.angle,
+    levels: player.levels,
+    haracteristics: player.haracteristics,
+    health: player.health,
+    nickname: player.nickname,
+    score: player.score,
+  };
+  SOCKETS[socketId].emit(
+    "init",
+    get_first_init_pack(players.get(socketId).mode)
+  );
+}
+
 function player_dead(socketId) {
+  let player = players.get(socketId);
   if (!players.get(socketId).bot) {
     SOCKETS[socketId].emit("kick");
   }
+  players_to_remove[player.mode].push(socketId);
   players.get(socketId).death();
 }
 
@@ -337,8 +355,11 @@ function players_update() {
     );
   }
 
-  for (var i of players.keys()) {
-    var player = players.get(i);
+  const graczeKlucze = Array.from(players.keys());
+  const liczbaGraczy = graczeKlucze.length;
+
+  for (let i = 0; i < liczbaGraczy; i++) {
+    var player = players.get(graczeKlucze[i]);
 
     player.update();
 
@@ -409,36 +430,36 @@ function players_update() {
       }
     }
     //with players
-    for (var p of players.keys()) {
-      if (i != p) {
-        var player2 = players.get(p);
-        if (player.mode == player2.mode) {
-          if (obliczOdleglosc(player.position, player2.position) < 100) {
-            var points_of_poligon_of_second_player =
-              map_of_points_of_poligon_of_players.get(player2.id);
-            if (
-              sprawdzKolizjePoligonow(
-                points_of_poligon_of_the_player,
-                points_of_poligon_of_second_player
-              )
-            ) {
-              player.coliding = true;
-              player2.coliding = true;
-              player.health -= player2.haracteristics.damage;
-              player2.health -= player.haracteristics.damage;
-              if (player2.health <= 0) {
-                player.score += player2.score / 2;
-                player_dead(p);
-              }
-              if (player.health <= 0) {
-                player2.score += player.score / 2;
-                player_dead(i);
-              }
+
+    for (let j = i + 1; j < liczbaGraczy; j++) {
+      var player2 = players.get(graczeKlucze[j]);
+      if (player.mode == player2.mode) {
+        if (obliczOdleglosc(player.position, player2.position) < 100) {
+          var points_of_poligon_of_second_player =
+            map_of_points_of_poligon_of_players.get(player2.id);
+          if (
+            sprawdzKolizjePoligonow(
+              points_of_poligon_of_the_player,
+              points_of_poligon_of_second_player
+            )
+          ) {
+            player.coliding = true;
+            player2.coliding = true;
+            player.health -= player2.haracteristics.damage;
+            player2.health -= player.haracteristics.damage;
+            if (player2.health <= 0) {
+              player.score += player2.score / 2;
+              player_dead(graczeKlucze[j]);
+            }
+            if (player.health <= 0) {
+              player2.score += player.score / 2;
+              player_dead(graczeKlucze[i]);
             }
           }
         }
       }
-
+    }
+    for (var p of players.keys()) {
       if (player.coliding) {
         player.parametrs.color = "red";
       } else {
@@ -466,9 +487,14 @@ function players_update() {
 
 function get_first_init_pack(mode) {
   var pack = { meals: {}, players: {} };
-  for (var i in meals_data) {
+  for (let i in meals_data) {
     if (meals_data[i].mode == mode) {
       pack.meals[i] = meals_data[i];
+    }
+  }
+  for (let i of players.keys()) {
+    if (players.get(i).mode == mode) {
+      pack.players[i] = players.get(i);
     }
   }
 
@@ -495,7 +521,6 @@ function get_update_pack(mode) {
         levels: player.levels,
         haracteristics: player.haracteristics,
         health: player.health,
-        nickname: player.nickname,
         score: player.score,
       };
     }
@@ -550,12 +575,6 @@ function meals_update() {
   }
 }
 
-function bots_update() {
-  if (players.keys().length < 3) {
-    //player_join(`bot${Math.random()}bot`, "nigger1", "FFA1", true);
-  }
-}
-
 setInterval(function () {
   meals_update();
   //bots_update();
@@ -581,14 +600,13 @@ setInterval(function () {
     if (!player.bot) {
       let mode = player.mode;
       if (
-        init_packs[mode].meals &&
-        Object.keys(init_packs[mode].meals).length !== 0 ||
-        init_packs[mode].players &&
-        Object.keys(init_packs[mode].players).length !== 0
+        (init_packs[mode].meals &&
+          Object.keys(init_packs[mode].meals).length !== 0) ||
+        (init_packs[mode].players &&
+          Object.keys(init_packs[mode].players).length !== 0)
       ) {
         SOCKETS[i].emit("init", init_packs[mode]);
       }
-      //console.log(init_packs[mode]);
       SOCKETS[i].emit("update", update_placks[mode]);
       SOCKETS[i].emit("remove", remove_packs[mode]);
     }
@@ -597,4 +615,5 @@ setInterval(function () {
   meals_to_remove = { FFA1: [], FFA2: [] };
   players_to_add = { FFA1: {}, FFA2: {} };
   players_to_remove = { FFA1: [], FFA2: [] };
-}, 1000 / 25);
+}, 1000 / 15);
+//25
