@@ -558,7 +558,7 @@ function bots_update() {
 
 setInterval(function () {
   meals_update();
-  bots_update();
+  //bots_update();
   players_update();
 
   var init_packs = {
@@ -580,7 +580,15 @@ setInterval(function () {
     let player = players.get(i);
     if (!player.bot) {
       let mode = player.mode;
-      SOCKETS[i].emit("init", init_packs[mode]);
+      if (
+        init_packs[mode].meals &&
+        Object.keys(init_packs[mode].meals).length !== 0 ||
+        init_packs[mode].players &&
+        Object.keys(init_packs[mode].players).length !== 0
+      ) {
+        SOCKETS[i].emit("init", init_packs[mode]);
+      }
+      //console.log(init_packs[mode]);
       SOCKETS[i].emit("update", update_placks[mode]);
       SOCKETS[i].emit("remove", remove_packs[mode]);
     }
