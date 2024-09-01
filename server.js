@@ -343,6 +343,7 @@ function players_update() {
 
   for (let p of players.keys()) {
     let player = players.get(p);
+    player.update();
     map_of_points_of_poligon_of_players.set(
       player.id,
       generujPunktyPoligonu(
@@ -355,13 +356,13 @@ function players_update() {
     );
   }
 
-  const graczeKlucze = Array.from(players.keys());
-  const liczbaGraczy = graczeKlucze.length;
+  let graczeKlucze = Array.from(players.keys());
+  let liczbaGraczy = graczeKlucze.length;
 
   for (let i = 0; i < liczbaGraczy; i++) {
     var player = players.get(graczeKlucze[i]);
 
-    player.update();
+    if (!player) continue;
 
     //colision
 
@@ -388,14 +389,14 @@ function players_update() {
             )
           ) {
             player.score += 1;
-            if (meals_data[n].color == "red") {
+            if (meals_data[n].type == "size") {
               player.to_update_param.size += 1;
               if (player.to_update_param.size >= 10) {
                 player.to_update_param.size = 0;
                 player.levels.size += 1;
                 player.parametrs.size = 1.5 * player.levels.size + 20;
               }
-            } else if (meals_data[n].color == "orange") {
+            } else if (meals_data[n].type == "speed") {
               player.to_update_param.move_speed += 1;
               if (player.to_update_param.move_speed >= 10) {
                 player.to_update_param.move_speed = 0;
@@ -406,7 +407,7 @@ function players_update() {
                   15
                 );
               }
-            } else if (meals_data[n].color == "green") {
+            } else if (meals_data[n].type == "angles") {
               player.to_update_param.number_of_angles += 1;
               if (player.to_update_param.number_of_angles >= 10) {
                 player.to_update_param.number_of_angles = 0;
@@ -414,7 +415,7 @@ function players_update() {
                 player.parametrs.number_of_angles =
                   player.levels.number_of_angles + 2;
               }
-            } else if (meals_data[n].color == "blue") {
+            } else if (meals_data[n].type == "rotation") {
               player.to_update_param.rotation_speed += 1;
               if (player.to_update_param.rotation_speed >= 10) {
                 player.to_update_param.rotation_speed = 0;
@@ -433,6 +434,7 @@ function players_update() {
 
     for (let j = i + 1; j < liczbaGraczy; j++) {
       var player2 = players.get(graczeKlucze[j]);
+      if (!player2) continue;
       if (player.mode == player2.mode) {
         if (obliczOdleglosc(player.position, player2.position) < 100) {
           var points_of_poligon_of_second_player =
@@ -445,6 +447,7 @@ function players_update() {
           ) {
             player.coliding = true;
             player2.coliding = true;
+
             player.health -= player2.haracteristics.damage;
             player2.health -= player.haracteristics.damage;
             if (player2.health <= 0) {
@@ -459,7 +462,7 @@ function players_update() {
         }
       }
     }
-    for (var p of players.keys()) {
+    for (let p of players.keys()) {
       if (player.coliding) {
         player.parametrs.color = "red";
       } else {
@@ -541,37 +544,62 @@ var meals_to_remove = { FFA1: [], FFA2: [] };
 var players_to_add = { FFA1: {}, FFA2: {} };
 var players_to_remove = { FFA1: [], FFA2: [] };
 
+function make_new_meal() {
+  let id_of_meal = Math.random();
+  let position = {
+    x: 10000 * Math.random(),
+    y: 10000 * Math.random(),
+  };
+  let type_of_meal = "speed";
+
+  let color_num = Math.random();
+  if (color_num > 0.7) {
+    type_of_meal = "size";
+  } else if (color_num > 0.4) {
+    type_of_meal = "rotation";
+  } else if (color_num >= 0.1) {
+    type_of_meal = "speed";
+  } else if (color_num < 0.1) {
+    type_of_meal = "angles";
+  }
+
+  var mode = "FFA1";
+  if (Math.random() > 0.5) {
+    mode = "FFA2";
+  }
+
+  return {id:id_of_meal, data:{
+    position: position,
+    type: type_of_meal,
+    mode: mode,
+  }}
+}
+
 function meals_update() {
   if (Object.keys(meals_data).length < 3000) {
-    let id_of_meal = Math.random();
-    let position = {
-      x: 10000 * Math.random(),
-      y: 10000 * Math.random(),
-    };
-    let color_of_meal = "orange";
+    let new_meal = make_new_meal();
 
-    let color_num = Math.random();
-    if (color_num > 0.7) {
-      color_of_meal = "red";
-    } else if (color_num > 0.4) {
-      color_of_meal = "blue";
-    } else if (color_num >= 0.1) {
-      color_of_meal = "orange";
-    } else if (color_num < 0.1) {
-      color_of_meal = "green";
+    meals_data[new_meal.id] = new_meal.data;
+    meals_to_add[new_meal.data.mode][new_meal.id] = meals_data[new_meal.id];
+  }
+}
+
+function send_data(init_packs, update_placks, remove_packs) {
+  for (var i of players.keys()) {
+    let player = players.get(i);
+    if (!player.bot) {
+      let mode = player.mode;
+      if (
+        (init_packs[mode].meals &&
+          Object.keys(init_packs[mode].meals).length !== 0) ||
+        (init_packs[mode].players &&
+          Object.keys(init_packs[mode].players).length !== 0)
+      ) {
+        SOCKETS[i].emit("init", init_packs[mode]);
+      }
+      SOCKETS[i].emit("update", update_placks[mode]);
+      SOCKETS[i].emit("remove", remove_packs[mode]);
     }
-
-    var mode = "FFA1";
-    if (Math.random() > 0.5) {
-      mode = "FFA2";
-    }
-
-    meals_data[id_of_meal] = {
-      position: position,
-      color: color_of_meal,
-      mode: mode,
-    };
-    meals_to_add[mode][id_of_meal] = meals_data[id_of_meal];
   }
 }
 
@@ -595,25 +623,17 @@ setInterval(function () {
     FFA2: get_remove_pack("FFA2"),
   };
 
-  for (var i of players.keys()) {
-    let player = players.get(i);
-    if (!player.bot) {
-      let mode = player.mode;
-      if (
-        (init_packs[mode].meals &&
-          Object.keys(init_packs[mode].meals).length !== 0) ||
-        (init_packs[mode].players &&
-          Object.keys(init_packs[mode].players).length !== 0)
-      ) {
-        SOCKETS[i].emit("init", init_packs[mode]);
-      }
-      SOCKETS[i].emit("update", update_placks[mode]);
-      SOCKETS[i].emit("remove", remove_packs[mode]);
-    }
-  }
+  send_data(init_packs, update_placks, remove_packs);
+
   meals_to_add = { FFA1: {}, FFA2: {} };
   meals_to_remove = { FFA1: [], FFA2: [] };
   players_to_add = { FFA1: {}, FFA2: {} };
   players_to_remove = { FFA1: [], FFA2: [] };
 }, 1000 / 15);
 //25
+
+//Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+//clinic flame -- node server.js
+
+//Set-ExecutionPolicy Restricted -Scope CurrentUser

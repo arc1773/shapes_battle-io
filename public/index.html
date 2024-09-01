@@ -3,263 +3,19 @@
   <head>
     <script src="https://www.google.com/recaptcha/api.js?render=6Lf5GS8qAAAAAJS54-8ATIYTIMzO8AO4kNUm6xc0"></script>
     <link rel="icon" href="pentagon.svg" />
+    <link rel="stylesheet" href="styles.css">
     <title>shapes</title>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body,
-      html {
-        height: 100%;
-        overflow: hidden;
-        background-color: #f0f0f0;
-        color: #333;
-        font-family: Arial, sans-serif;
-      }
-
-      body {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-
-      #main_menu {
-        text-align: center;
-      }
-
-      #logo {
-        font-size: 60px;
-        margin-bottom: 50px;
-        font-weight: bold;
-        color: #444;
-      }
-
-      #inp_play {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 20px;
-      }
-
-      #nickname {
-        background-color: #fff;
-        color: #333;
-        border: solid 2px #ccc;
-        height: 40px;
-        width: 60%;
-        text-align: center;
-        font-size: 18px;
-        border-radius: 5px 0 0 5px;
-        outline: none;
-      }
-
-      #play {
-        background-color: #4caf50;
-        color: #fff;
-        height: 40px;
-        width: 20%;
-        text-align: center;
-        font-size: 18px;
-        border: solid 2px #ccc;
-        border-left: none;
-        border-radius: 0 5px 5px 0;
-        cursor: pointer;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-
-      #play:hover {
-        background-color: #45a049;
-      }
-
-      #mode {
-        background-color: #fff;
-        color: #333;
-        border: solid 2px #ccc;
-        height: 40px;
-        width: 40%;
-        font-size: 18px;
-        border-radius: 5px;
-        outline: none;
-        margin-top: 20px;
-        cursor: pointer;
-      }
-
-      #err {
-        color: red;
-        font-size: 20px;
-        display: none;
-      }
-
-      #exit-button {
-        position: absolute;
-        left: 4px;
-        top: 4px;
-        background-color: #ff4d4d;
-        color: white;
-        font-size: 16px;
-        font-family: Arial, sans-serif;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-        transition: background-color 0.3s ease;
-        z-index: 999;
-      }
-
-      #exit-button:hover {
-        background-color: #ff1a1a;
-      }
-
-      #exit-button:active {
-        background-color: #cc0000;
-      }
-
-      /* Ukrycie okna dialogowego */
-      #confirm-dialog {
-        display: none;
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        transform: translate(0%, 0%);
-        background-color: #333;
-        color: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
-        z-index: 1000;
-        width: 300px;
-        text-align: center;
-      }
-
-      #confirm-dialog button {
-        background-color: #ff4d4d;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        margin: 10px;
-        cursor: pointer;
-        border-radius: 5px;
-        font-size: 16px;
-        transition: background-color 0.3s ease;
-      }
-
-      #confirm-dialog button:hover {
-        background-color: #ff1a1a;
-      }
-
-      .level {
-        position: absolute;
-        left: 10px;
-        display: flex;
-        width: 200px;
-        height: 40px;
-        background-color: #ffffff;
-        border: 4px solid #ccc;
-        border-radius: 25px;
-        overflow: hidden;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-      }
-
-      #move_speed {
-        bottom: 10px;
-      }
-      #size {
-        bottom: 60px;
-      }
-      #rotation_speed {
-        bottom: 110px;
-      }
-      #num_of_angles {
-        bottom: 160px;
-      }
-
-      .level p {
-        margin: 0;
-        padding: 0 12px;
-        background-color: #e0e0e0;
-        color: #333;
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        border-radius: 25px 0 0 25px;
-        font-size: 10px;
-        width: 90px;
-        text-transform: uppercase;
-      }
-
-      .level .point {
-        background-color: #4caf50;
-        height: 100%;
-        flex-grow: 1;
-        border-right: 2px solid #e0e0e0;
-      }
-
-      .level .point:last-child {
-        border-right: none;
-      }
-
-      .level .point.inactive {
-        background-color: #dcdcdc;
-      }
-
-      #top_5 {
-        font-size: 15px;
-        position: absolute;
-        left: calc(100% - 175px); /* Adjusted to provide more space */
-        top: 0px;
-        height: auto; /* Adjust height to fit the content */
-        width: 175px; /* Increased width for better readability */
-        background-color: #f0f0f0; /* Light background color for contrast */
-        border: 1px solid #ccc; /* Subtle border for structure */
-        border-radius: 8px; /* Rounded corners for a softer look */
-        padding: 10px; /* Added padding for spacing */
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
-      }
-
-      #top_5 p {
-        font-weight: bold;
-        text-align: center; /* Center-align the title */
-        margin-bottom: 10px; /* Space below the title */
-      }
-
-      #top_5 ol {
-        list-style-position: inside;
-        padding-left: 10px; /* Space between the list and the container edge */
-        margin: 0;
-      }
-
-      #top_5 li {
-        margin-bottom: 5px; /* Space between list items */
-        font-family: Arial, sans-serif; /* Cleaner font */
-        color: #333; /* Darker text color for contrast */
-      }
-
-      #top_5 li:nth-child(even) {
-        background-color: #e0e0e0; /* Alternating background for list items */
-        border-radius: 4px;
-        padding: 2px;
-      }
-
-      canvas {
-        display: block;
-        position: absolute;
-        top: 0;
-        left: 0;
-      }
-    </style>
   </head>
   <body>
     <div id="main_menu">
+      <div id="bg"></div>
       <h1 id="logo">---shapes---</h1>
       <div id="inp_play">
         <input type="text" id="nickname" placeholder="Enter your nickname" />
-        <div id="play">PLAY</div>
+        <div id="play">
+          <p id="txt">PLAY</p>
+          <div class="loader" id="loader"></div>
+        </div>
       </div>
       <div id="err">name is too long</div>
       <select id="mode">
@@ -346,6 +102,7 @@
       </div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="draw_f.js"></script>
     <script src="game.js"></script>
   </body>
 </html>
