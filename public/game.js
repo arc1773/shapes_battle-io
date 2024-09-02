@@ -64,6 +64,8 @@ var currentPlayersPos = null;
 
 var interpolatedPlayersPos = null;
 
+var filling_up_servers = { FFA1: 0, FFA2: 0 }
+
 socket.on("init", (data) => {
   for (let i in data.meals) {
     meals_data[i] = data.meals[i];
@@ -94,6 +96,14 @@ socket.on("remove", (data) => {
   for (var i in data.players) {
     delete players_data[data.players[i]];
   }
+});
+
+
+socket.on("filling_up_servers", (data) => {
+  filling_up_servers.FFA1 = data.FFA1
+  filling_up_servers.FFA2 = data.FFA2
+  document.getElementById("FFA1").textContent = `FFA1 ${filling_up_servers.FFA1}/15`
+  document.getElementById("FFA2").textContent = `FFA2 ${filling_up_servers.FFA2}/15`
 });
 
 socket.on("kick", () => {
@@ -133,7 +143,13 @@ button_of_start_game.addEventListener("click", async () => {
 
       txt.style.display = "block";
       loader.style = "none";
-    } else {
+    } else if(filling_up_servers[mode]>=15){
+      err_text.style.display = "block";
+      err_text.textContent = "the server is full. try another.";
+
+      txt.style.display = "block";
+      loader.style = "none";
+    }else {
       socket.emit("join_to_game", { nickname: nickname, mode: mode });
       err_text.style.display = "none";
     }

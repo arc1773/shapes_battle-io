@@ -100,6 +100,8 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+var sone_online = false;
+
 class Player {
   constructor(id, nickname, mode, bot) {
     this.id = id;
@@ -191,23 +193,57 @@ class Player {
 
     //bots' move
     if (this.bot) {
+      let closestTarget = null;
+      let minDistance = 500; // Maksymalna odległość, w której bot reaguje
+
+      // Szukanie najbliższego gracza
       for (let p of players.keys()) {
-        if (p != this.id) {
-          var player2 = players.get(p);
-          if (
-            Math.abs(player2.position.x - this.position.x) < 350 &&
-            Math.abs(player2.position.y - this.position.y) < 350
-          ) {
-            this.spdX =
-              this.parametrs.move_speed *
-              Math.min(Math.abs(player2.position.x - this.position.x) / 11, 1) *
-              Math.sign(player2.position.x - this.position.x);
-            this.spdY =
-              this.parametrs.move_speed *
-              Math.min(Math.abs(player2.position.y - this.position.y) / 11, 1) *
-              Math.sign(player2.position.y - this.position.y);
+        if (p !== this.id) {
+          const player2 = players.get(p);
+          if (player2.mode == this.mode) {
+            const distX = player2.position.x - this.position.x;
+            const distY = player2.position.y - this.position.y;
+            const distance = Math.sqrt(distX * distX + distY * distY); // Odległość euklidesowa
+
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestTarget = player2;
+            }
           }
         }
+      }
+
+      // Szukanie najbliższego jedzenia
+      for (let meal_i in meals_data) {
+        let food = meals_data[meal_i];
+        if (food.mode == this.mode) {
+          const distX = food.position.x - this.position.x;
+          const distY = food.position.y - this.position.y;
+          const distance = Math.sqrt(distX * distX + distY * distY); // Odległość euklidesowa
+
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestTarget = food;
+          }
+        }
+      }
+
+      if (closestTarget) {
+        const directionX = closestTarget.position.x - this.position.x;
+        const directionY = closestTarget.position.y - this.position.y;
+
+        this.spdX =
+          this.parametrs.move_speed *
+          Math.min(Math.abs(directionX) / this.parametrs.move_speed, 1) *
+          Math.sign(directionX);
+        this.spdY =
+          this.parametrs.move_speed *
+          Math.min(Math.abs(directionY) / this.parametrs.move_speed, 1) *
+          Math.sign(directionY);
+      } else {
+        // Bot nie wykrył żadnego gracza ani jedzenia w zasięgu, może tutaj np. patrolować
+        this.spdX = 0;
+        this.spdY = 0;
       }
     }
 
@@ -223,6 +259,7 @@ class Player {
     }
   }
   death() {
+    players_to_remove[this.mode].push(this.id);
     players.delete(this.id);
   }
 }
@@ -245,7 +282,10 @@ io.on("connection", (socket) => {
   SOCKETS[socket.id] = socket;
 
   socket.on("join_to_game", function (data) {
-    add_player(socket.id, data.nickname, data.mode);
+    if(filling_up_servers[data.mode]<15){
+      add_player(socket.id, data.nickname, data.mode, false);
+    }
+    
   });
 
   socket.on("leave_game", function () {
@@ -254,7 +294,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("stop_start_move", function () {
-    players.get(socket.id).moving = !players.get(socket.id).moving;
+    if (players.get(socket.id)) {
+      players.get(socket.id).moving = !players.get(socket.id).moving;
+    }
   });
 
   socket.on("mouse_position", function (data) {
@@ -294,12 +336,13 @@ io.on("connection", (socket) => {
     if (players.get(socket.id)) {
       players.get(socket.id).death();
     }
+
     console.log("user disconnected");
   });
 });
 
-function add_player(socketId, nickname, mode) {
-  players.set(socketId, new Player(socketId, nickname, mode, false));
+function add_player(socketId, nickname, mode, bot) {
+  players.set(socketId, new Player(socketId, nickname, mode, bot));
   let player = players.get(socketId);
   players_to_add[mode][socketId] = {
     position: player.position,
@@ -312,18 +355,21 @@ function add_player(socketId, nickname, mode) {
     nickname: player.nickname,
     score: player.score,
   };
-  SOCKETS[socketId].emit(
-    "init",
-    get_first_init_pack(players.get(socketId).mode)
-  );
+  if (!bot) {
+    SOCKETS[socketId].emit(
+      "init",
+      get_first_init_pack(players.get(socketId).mode)
+    );
+  }
 }
 
 function player_dead(socketId) {
   let player = players.get(socketId);
-  if (!players.get(socketId).bot) {
-    SOCKETS[socketId].emit("kick");
+  if (player) {
+    if (!players.get(socketId).bot) {
+      SOCKETS[socketId].emit("kick");
+    }
   }
-  players_to_remove[player.mode].push(socketId);
   players.get(socketId).death();
 }
 
@@ -343,7 +389,7 @@ function players_update() {
 
   for (let p of players.keys()) {
     let player = players.get(p);
-    player.update();
+
     map_of_points_of_poligon_of_players.set(
       player.id,
       generujPunktyPoligonu(
@@ -364,6 +410,7 @@ function players_update() {
 
     if (!player) continue;
 
+    player.update();
     //colision
 
     var points_of_poligon_of_the_player =
@@ -434,6 +481,7 @@ function players_update() {
 
     for (let j = i + 1; j < liczbaGraczy; j++) {
       var player2 = players.get(graczeKlucze[j]);
+      if (!player) break;
       if (!player2) continue;
       if (player.mode == player2.mode) {
         if (obliczOdleglosc(player.position, player2.position) < 100) {
@@ -497,7 +545,18 @@ function get_first_init_pack(mode) {
   }
   for (let i of players.keys()) {
     if (players.get(i).mode == mode) {
-      pack.players[i] = players.get(i);
+      let player = players.get(i);
+      pack.players[i] = {
+        position: player.position,
+        parametrs: player.parametrs,
+        to_update_param: player.to_update_param,
+        angle: player.angle,
+        levels: player.levels,
+        haracteristics: player.haracteristics,
+        health: player.health,
+        nickname: player.nickname,
+        score: player.score,
+      };
     }
   }
 
@@ -568,11 +627,14 @@ function make_new_meal() {
     mode = "FFA2";
   }
 
-  return {id:id_of_meal, data:{
-    position: position,
-    type: type_of_meal,
-    mode: mode,
-  }}
+  return {
+    id: id_of_meal,
+    data: {
+      position: position,
+      type: type_of_meal,
+      mode: mode,
+    },
+  };
 }
 
 function meals_update() {
@@ -581,6 +643,12 @@ function meals_update() {
 
     meals_data[new_meal.id] = new_meal.data;
     meals_to_add[new_meal.data.mode][new_meal.id] = meals_data[new_meal.id];
+  }
+}
+
+function spawn_bots() {
+  if (players.size < 8) {
+    add_player(Math.random(), "niga1", "FFA1", true);
   }
 }
 
@@ -604,32 +672,59 @@ function send_data(init_packs, update_placks, remove_packs) {
 }
 
 setInterval(function () {
-  meals_update();
-  //bots_update();
-  players_update();
+  if (sone_online) {
+    meals_update();
+    spawn_bots();
+    players_update();
 
-  var init_packs = {
-    FFA1: get_init_pack("FFA1"),
-    FFA2: get_init_pack("FFA2"),
-  };
+    var init_packs = {
+      FFA1: get_init_pack("FFA1"),
+      FFA2: get_init_pack("FFA2"),
+    };
 
-  var update_placks = {
-    FFA1: get_update_pack("FFA1"),
-    FFA2: get_update_pack("FFA2"),
-  };
+    var update_placks = {
+      FFA1: get_update_pack("FFA1"),
+      FFA2: get_update_pack("FFA2"),
+    };
 
-  var remove_packs = {
-    FFA1: get_remove_pack("FFA1"),
-    FFA2: get_remove_pack("FFA2"),
-  };
+    var remove_packs = {
+      FFA1: get_remove_pack("FFA1"),
+      FFA2: get_remove_pack("FFA2"),
+    };
 
-  send_data(init_packs, update_placks, remove_packs);
+    send_data(init_packs, update_placks, remove_packs);
 
-  meals_to_add = { FFA1: {}, FFA2: {} };
-  meals_to_remove = { FFA1: [], FFA2: [] };
-  players_to_add = { FFA1: {}, FFA2: {} };
-  players_to_remove = { FFA1: [], FFA2: [] };
+    meals_to_add = { FFA1: {}, FFA2: {} };
+    meals_to_remove = { FFA1: [], FFA2: [] };
+    players_to_add = { FFA1: {}, FFA2: {} };
+    players_to_remove = { FFA1: [], FFA2: [] };
+  }
+
+  filling_up_servers = { FFA1: 0, FFA2: 0 }
+
+  for(let i of players.keys()){
+    if(players.get(i).mode == "FFA1"){
+      filling_up_servers.FFA1++
+    }else if(players.get(i).mode == "FFA2"){
+      filling_up_servers.FFA2++
+    }
+  }
+  io.emit("filling_up_servers", filling_up_servers);
+
 }, 1000 / 15);
+
+var filling_up_servers = { FFA1: 0, FFA2: 0 };
+
+setInterval(function () {
+  sone_online = false;
+  for (let i of players.keys()) {
+    if (!players.get(i).bot) {
+      sone_online = true;
+      break;
+    }
+  }
+}, 1000);
+
 //25
 
 //Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
