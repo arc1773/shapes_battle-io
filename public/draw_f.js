@@ -21,6 +21,7 @@ function drawPoligon(x, y, size, liczbaKatow, katNachylenia, color = "black") {
 
 function draw_player(pos, data) {
   let player = interpolatedPlayersPos[socket.id];
+
   let drawX = pos.x - (player.x - wc / 2);
   let drawY = pos.y - (player.y - hc / 2);
   drawPoligon(
@@ -154,7 +155,13 @@ function draw() {
   for (var i in meals_data) {
     draw_meal(meals_data[i]);
   }
-  for (var i in interpolatedPlayersPos) {
+  for (var i in players_data) {
+    if(!interpolatedPlayersPos[i]){
+      console.log("4")
+      console.log(interpolatedPlayersPos)
+      console.log(i)
+      console.log(players_data)
+    }
     draw_player(interpolatedPlayersPos[i], players_data[i]);
   }
   draw_minimap();

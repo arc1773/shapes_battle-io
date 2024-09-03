@@ -282,10 +282,9 @@ io.on("connection", (socket) => {
   SOCKETS[socket.id] = socket;
 
   socket.on("join_to_game", function (data) {
-    if(filling_up_servers[data.mode]<15){
+    if (filling_up_servers[data.mode] < 15) {
       add_player(socket.id, data.nickname, data.mode, false);
     }
-    
   });
 
   socket.on("leave_game", function () {
@@ -652,6 +651,7 @@ function spawn_bots() {
   }
 }
 
+//ought to be optimized
 function send_data(init_packs, update_placks, remove_packs) {
   for (var i of players.keys()) {
     let player = players.get(i);
@@ -700,17 +700,16 @@ setInterval(function () {
     players_to_remove = { FFA1: [], FFA2: [] };
   }
 
-  filling_up_servers = { FFA1: 0, FFA2: 0 }
+  filling_up_servers = { FFA1: 0, FFA2: 0 };
 
-  for(let i of players.keys()){
-    if(players.get(i).mode == "FFA1"){
-      filling_up_servers.FFA1++
-    }else if(players.get(i).mode == "FFA2"){
-      filling_up_servers.FFA2++
+  for (let i of players.keys()) {
+    if (players.get(i).mode == "FFA1") {
+      filling_up_servers.FFA1++;
+    } else if (players.get(i).mode == "FFA2") {
+      filling_up_servers.FFA2++;
     }
   }
   io.emit("filling_up_servers", filling_up_servers);
-
 }, 1000 / 15);
 
 var filling_up_servers = { FFA1: 0, FFA2: 0 };

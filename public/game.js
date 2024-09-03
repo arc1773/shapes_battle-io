@@ -21,15 +21,19 @@ function getdata() {
 
 function lerp(start, end, t) {
   var playersPos = {};
-  for (var i in start) {
-    if (end[i]) {
+  for (var i in end) {
+    if (start && start[i]) {
       playersPos[i] = {
         x: start[i].position.x + t * (end[i].position.x - start[i].position.x),
         y: start[i].position.y + t * (end[i].position.y - start[i].position.y),
         angle: start[i].angle + t * (end[i].angle - start[i].angle),
       };
     } else {
-      playersPos[i] = end;
+      playersPos[i] = {
+        x: end[i].position.x,
+        y: end[i].position.y,
+        angle: end[i].angle,
+      };
     }
   }
   return playersPos;
@@ -64,7 +68,7 @@ var currentPlayersPos = null;
 
 var interpolatedPlayersPos = null;
 
-var filling_up_servers = { FFA1: 0, FFA2: 0 }
+var filling_up_servers = { FFA1: 0, FFA2: 0 };
 
 socket.on("init", (data) => {
   for (let i in data.meals) {
@@ -86,6 +90,17 @@ socket.on("update", function (data) {
   previousPlayersPos = currentPlayersPos;
   currentPlayersPos = data.players;
 
+  for(let g in players_data){
+    if(!currentPlayersPos[g]){
+      console.log(currentPlayersPos[g])
+      currentPlayersPos[g] = players_data[g]
+      console.log(currentPlayersPos[g])
+    }
+  }
+  
+  
+ 
+
   t = 0;
 });
 
@@ -98,12 +113,15 @@ socket.on("remove", (data) => {
   }
 });
 
-
 socket.on("filling_up_servers", (data) => {
-  filling_up_servers.FFA1 = data.FFA1
-  filling_up_servers.FFA2 = data.FFA2
-  document.getElementById("FFA1").textContent = `FFA1 ${filling_up_servers.FFA1}/15`
-  document.getElementById("FFA2").textContent = `FFA2 ${filling_up_servers.FFA2}/15`
+  filling_up_servers.FFA1 = data.FFA1;
+  filling_up_servers.FFA2 = data.FFA2;
+  document.getElementById(
+    "FFA1"
+  ).textContent = `FFA1 ${filling_up_servers.FFA1}/15`;
+  document.getElementById(
+    "FFA2"
+  ).textContent = `FFA2 ${filling_up_servers.FFA2}/15`;
 });
 
 socket.on("kick", () => {
@@ -143,13 +161,13 @@ button_of_start_game.addEventListener("click", async () => {
 
       txt.style.display = "block";
       loader.style = "none";
-    } else if(filling_up_servers[mode]>=15){
+    } else if (filling_up_servers[mode] >= 15) {
       err_text.style.display = "block";
       err_text.textContent = "the server is full. try another.";
 
       txt.style.display = "block";
       loader.style = "none";
-    }else {
+    } else {
       socket.emit("join_to_game", { nickname: nickname, mode: mode });
       err_text.style.display = "none";
     }
@@ -287,6 +305,15 @@ setInterval(function () {
     t += 1 / 10;
 
     interpolatedPlayersPos = lerp(previousPlayersPos, currentPlayersPos, t);
+    for (let f in players_data) {
+      if (!interpolatedPlayersPos[f]) {
+        console.log("3");
+        console.log(interpolatedPlayersPos);
+        console.log(f);
+        console.log(players_data);
+        console.log(currentPlayersPos);
+      }
+    }
     update_to_update_param();
     update_list_of_top_5();
 
@@ -342,4 +369,16 @@ canvas.addEventListener("mousemove", (event) => {
     y: event.clientY,
   };
   socket.emit("mouse_position", mouse_position);
+});
+
+
+
+document.addEventListener("keydown", function(event) {
+  if (event.key === "F12" || (event.ctrlKey && event.shiftKey && event.key === "I")) {
+      event.preventDefault();
+  }
+});
+
+document.addEventListener("contextmenu", function(event) {
+  event.preventDefault();
 });
