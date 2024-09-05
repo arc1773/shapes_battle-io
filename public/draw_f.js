@@ -45,6 +45,18 @@ function draw_player(pos, data) {
   let y = drawY - fontSize / 2 - data.parametrs.size;
 
   ctx.fillText(text, x, y);
+
+  //health
+  ctx.fillStyle = "red";
+  console.log()
+  ctx.fillRect(
+    drawX - 25,
+    drawY - data.parametrs.size - 30,
+    (data.health / data.haracteristics.max_health) * 50,
+    10
+  );
+  ctx.strokeStyle = "black";
+  ctx.strokeRect(drawX - 25, drawY - data.parametrs.size - 30, 50, 10);
 }
 
 function draw_meal(data) {
@@ -155,15 +167,15 @@ function draw() {
   for (var i in meals_data) {
     draw_meal(meals_data[i]);
   }
-  for (var i in players_data) {
-    if(!interpolatedPlayersPos[i]){
-      console.log("4")
-      console.log(interpolatedPlayersPos)
-      console.log(i)
-      console.log(players_data)
-    }
+  for (var i in interpolatedPlayersPos) {
+    //if(!interpolatedPlayersPos[i]){
+    //  console.log("4")
+    //  console.log(interpolatedPlayersPos)
+    //  console.log(i)
+    //  console.log(players_data)
+    //}
     draw_player(interpolatedPlayersPos[i], players_data[i]);
   }
   draw_minimap();
-  draw_helath();
+  //draw_helath();
 }

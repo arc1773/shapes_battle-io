@@ -90,13 +90,13 @@ socket.on("update", function (data) {
   previousPlayersPos = currentPlayersPos;
   currentPlayersPos = data.players;
 
-  for (let g in players_data) {
-    if (!currentPlayersPos[g]) {
-      console.log(currentPlayersPos[g]);
-      currentPlayersPos[g] = players_data[g];
-      console.log(currentPlayersPos[g]);
-    }
-  }
+  //for (let g in players_data) {
+  //  if (!currentPlayersPos[g]) {
+  //    console.log(currentPlayersPos[g]);
+  //    currentPlayersPos[g] = players_data[g];
+  //    console.log(currentPlayersPos[g]);
+  //  }
+  //}
 
   t = 0;
 });
@@ -287,7 +287,7 @@ function update_list_of_top_5() {
   for (let i in graczeArray) {
     if (c < 5)
       lis[i].textContent =
-        graczeArray[i][1].nickname + "-" + graczeArray[i][1].score;
+        graczeArray[i][1].nickname;
     c++;
   }
 }
@@ -302,15 +302,15 @@ setInterval(function () {
     t += 1 / 10;
 
     interpolatedPlayersPos = lerp(previousPlayersPos, currentPlayersPos, t);
-    for (let f in players_data) {
-      if (!interpolatedPlayersPos[f]) {
-        console.log("3");
-        console.log(interpolatedPlayersPos);
-        console.log(f);
-        console.log(players_data);
-        console.log(currentPlayersPos);
-      }
-    }
+    //for (let f in players_data) {
+    //  if (!interpolatedPlayersPos[f]) {
+    //    console.log("3");
+    //    console.log(interpolatedPlayersPos);
+    //    console.log(f);
+    //    console.log(players_data);
+    //    console.log(currentPlayersPos);
+    //  }
+    //}
     update_to_update_param();
     update_list_of_top_5();
 
@@ -361,20 +361,17 @@ canvas.addEventListener("click", (event) => {
 });
 
 var mouse_position = {};
+var spd = {
+  x: 0,
+  y: 0,
+};
 
 canvas.addEventListener("mousemove", (event) => {
   mouse_position = {
     x: event.clientX,
     y: event.clientY,
   };
-  let spd = {
-    x: 0,
-    y: 0,
-  };
 
-  
-
-  
   if (mouse_position.x > wc * 0.75) {
     mouse_position.x = wc * 0.75;
   } else if (mouse_position.x < wc * 0.25) {
@@ -387,12 +384,9 @@ canvas.addEventListener("mousemove", (event) => {
   }
 
   spd.x =
-    THE_PLAYER.parametrs.move_speed *
-    ((mouse_position.x - wc / 2) / (wc / 4));
-    spd.y =
-    THE_PLAYER.parametrs.move_speed *
-    ((mouse_position.y - hc / 2) / (hc / 4));
-  socket.emit("mouse_position", mouse_position);
+    THE_PLAYER.parametrs.move_speed * ((mouse_position.x - wc / 2) / (wc / 4));
+  spd.y =
+    THE_PLAYER.parametrs.move_speed * ((mouse_position.y - hc / 2) / (hc / 4));
   socket.emit("spd", spd);
 });
 

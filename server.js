@@ -7,6 +7,20 @@
 //shapes-battle-io.onrender.com site key: 6Lf5GS8qAAAAAJS54-8ATIYTIMzO8AO4kNUm6xc0
 //shapes-battle-io.onrender.com secret key: 6Lf5GS8qAAAAANvjUa9povmDhIPL-90CK-et_kw8
 
+
+
+// Listy z elementami, które będą tworzyć nicki
+const prefixes = ["Super", "Mega", "Ultra", "Hyper", "Crazy", "Epic", "Dark", "Light"];
+const suffixes = ["Hero", "Master", "Warrior", "Ninja", "Dragon", "Wolf", "Hunter", "Shadow"];
+
+function generateNickname() {
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]; // Losowanie prefiksu
+    const suffix = suffixes[Math.floor(Math.random() * suffixes.length)]; // Losowanie sufiksu
+    const number = Math.floor(Math.random() * 90) + 10; // Losowanie liczby od 10 do 99
+
+    return `${prefix}${suffix}${number}`; // Składanie nicku
+}
+
 function generujPunktyPoligonu(x, y, size, liczbaKatow, katNachylenia) {
   const kat = (2 * Math.PI) / liczbaKatow;
   const punkty = new Array(liczbaKatow);
@@ -118,7 +132,7 @@ class Player {
       y: 500,
     };
     this.parametrs = {
-      move_speed: 12, //move_speed
+      move_speed: 7, //move_speed
       size: 20, //health
       number_of_angles: 3, //damage
       rotation_speed: 0.06, //regeneration
@@ -220,17 +234,19 @@ class Player {
         this.spdY = 0;
       }
     }
-    
+
     if (this.moving || this.bot) {
       this.position.x += this.spdX;
       this.position.y += this.spdY;
     }
   }
   regeneration() {
-    if (this.health < this.haracteristics.max_health) {
-      this.health += this.haracteristics.regeneration;
-      if (this.health > this.haracteristics.max_health) {
-        this.health = this.haracteristics.max_health;
+    if (!this.coliding) {
+      if (this.health < this.haracteristics.max_health) {
+        this.health += this.haracteristics.regeneration;
+        if (this.health > this.haracteristics.max_health) {
+          this.health = this.haracteristics.max_health;
+        }
       }
     }
   }
@@ -251,7 +267,7 @@ const SECRET_KEY = "6Lf5GS8qAAAAANvjUa9povmDhIPL-90CK-et_kw8";
 app.use(express.static("public"));
 
 server.listen(443);
-console.log("server started(listan on port 443");
+console.log("server started listen on port 443");
 
 io.on("connection", (socket) => {
   console.log("a user connected");
@@ -274,8 +290,10 @@ io.on("connection", (socket) => {
     }
   });
   socket.on("spd", function (data) {
-    players.get(socket.id).spdX = data.x;
-    players.get(socket.id).spdY = data.y;
+    if (players.get(socket.id)) {
+      players.get(socket.id).spdX = data.x;
+      players.get(socket.id).spdY = data.y;
+    }
   });
 
   socket.on("verify-recaptcha", async (token) => {
@@ -354,19 +372,24 @@ function areSquaresColliding(square2, square1) {
 function players_update() {
   var map_of_points_of_poligon_of_players = new Map();
 
+  //for (let p of players.keys()) {
+  //  let player = players.get(p);
+  //
+  //  map_of_points_of_poligon_of_players.set(
+  //    player.id,
+  //    generujPunktyPoligonu(
+  //      player.position.x,
+  //      player.position.y,
+  //      player.parametrs.size,
+  //      player.parametrs.number_of_angles,
+  //      player.angle
+  //    )
+  //  );
+  //}
+
   for (let p of players.keys()) {
     let player = players.get(p);
-
-    map_of_points_of_poligon_of_players.set(
-      player.id,
-      generujPunktyPoligonu(
-        player.position.x,
-        player.position.y,
-        player.parametrs.size,
-        player.parametrs.number_of_angles,
-        player.angle
-      )
-    );
+    player.update();
   }
 
   let graczeKlucze = Array.from(players.keys());
@@ -377,9 +400,21 @@ function players_update() {
 
     if (!player) continue;
 
-    player.update();
+    //player.update();
     //colision
 
+    if (!map_of_points_of_poligon_of_players.get(player.id)) {
+      map_of_points_of_poligon_of_players.set(
+        player.id,
+        generujPunktyPoligonu(
+          player.position.x,
+          player.position.y,
+          player.parametrs.size,
+          player.parametrs.number_of_angles,
+          player.angle
+        )
+      );
+    }
     var points_of_poligon_of_the_player =
       map_of_points_of_poligon_of_players.get(player.id);
 
@@ -448,12 +483,25 @@ function players_update() {
 
     for (let j = i + 1; j < liczbaGraczy; j++) {
       var player2 = players.get(graczeKlucze[j]);
-      if (!player) break;
+      if (!players.get(graczeKlucze[i])) break;
       if (!player2) continue;
       if (player.mode == player2.mode) {
         if (obliczOdleglosc(player.position, player2.position) < 100) {
+          if (!map_of_points_of_poligon_of_players.get(player2.id)) {
+            map_of_points_of_poligon_of_players.set(
+              player2.id,
+              generujPunktyPoligonu(
+                player2.position.x,
+                player2.position.y,
+                player2.parametrs.size,
+                player2.parametrs.number_of_angles,
+                player2.angle
+              )
+            );
+          }
           var points_of_poligon_of_second_player =
             map_of_points_of_poligon_of_players.get(player2.id);
+
           if (
             sprawdzKolizjePoligonow(
               points_of_poligon_of_the_player,
@@ -614,8 +662,8 @@ function meals_update() {
 }
 
 function spawn_bots() {
-  if (players.size < 20) {
-    add_player(Math.random(), "niga1", "FFA1", true);
+  if (players.size < 7) {
+    add_player(Math.random(), generateNickname(), "FFA1", true);
   }
 }
 
@@ -684,8 +732,6 @@ setInterval(function () {
       filling_up_servers.FFA2++;
     }
   });
-
-  io.emit("filling_up_servers", filling_up_servers);
 }, 1000 / 15);
 
 var filling_up_servers = { FFA1: 0, FFA2: 0 };
@@ -698,6 +744,8 @@ setInterval(function () {
       break;
     }
   }
+
+  io.emit("filling_up_servers", filling_up_servers);
 }, 1000);
 
 //25
