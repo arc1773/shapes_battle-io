@@ -723,7 +723,7 @@ setInterval(function () {
     players_to_remove = { FFA1: [], FFA2: [] };
   }
 
-  const filling_up_servers = { FFA1: 0, FFA2: 0 };
+  filling_up_servers = { FFA1: 0, FFA2: 0 };
 
   players.forEach((player) => {
     if (player.mode === "FFA1") {
