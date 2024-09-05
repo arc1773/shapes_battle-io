@@ -90,16 +90,13 @@ socket.on("update", function (data) {
   previousPlayersPos = currentPlayersPos;
   currentPlayersPos = data.players;
 
-  for(let g in players_data){
-    if(!currentPlayersPos[g]){
-      console.log(currentPlayersPos[g])
-      currentPlayersPos[g] = players_data[g]
-      console.log(currentPlayersPos[g])
+  for (let g in players_data) {
+    if (!currentPlayersPos[g]) {
+      console.log(currentPlayersPos[g]);
+      currentPlayersPos[g] = players_data[g];
+      console.log(currentPlayersPos[g]);
     }
   }
-  
-  
- 
 
   t = 0;
 });
@@ -161,7 +158,7 @@ button_of_start_game.addEventListener("click", async () => {
 
       txt.style.display = "block";
       loader.style = "none";
-    } else if (filling_up_servers[mode] >= 15) {
+    } else if (filling_up_servers[mode] >= 30) {
       err_text.style.display = "block";
       err_text.textContent = "the server is full. try another.";
 
@@ -363,22 +360,48 @@ canvas.addEventListener("click", (event) => {
   socket.emit("stop_start_move");
 });
 
+var mouse_position = {};
+
 canvas.addEventListener("mousemove", (event) => {
-  let mouse_position = {
+  mouse_position = {
     x: event.clientX,
     y: event.clientY,
   };
-  socket.emit("mouse_position", mouse_position);
-});
+  let spd = {
+    x: 0,
+    y: 0,
+  };
 
+  
 
-
-document.addEventListener("keydown", function(event) {
-  if (event.key === "F12" || (event.ctrlKey && event.shiftKey && event.key === "I")) {
-      event.preventDefault();
+  
+  if (mouse_position.x > wc * 0.75) {
+    mouse_position.x = wc * 0.75;
+  } else if (mouse_position.x < wc * 0.25) {
+    mouse_position.x = wc * 0.25;
   }
+  if (mouse_position.y > hc * 0.75) {
+    mouse_position.y = hc * 0.75;
+  } else if (mouse_position.y < hc * 0.25) {
+    mouse_position.y = hc * 0.25;
+  }
+
+  spd.x =
+    THE_PLAYER.parametrs.move_speed *
+    ((mouse_position.x - wc / 2) / (wc / 4));
+    spd.y =
+    THE_PLAYER.parametrs.move_speed *
+    ((mouse_position.y - hc / 2) / (hc / 4));
+  socket.emit("mouse_position", mouse_position);
+  socket.emit("spd", spd);
 });
 
-document.addEventListener("contextmenu", function(event) {
-  event.preventDefault();
-});
+//document.addEventListener("keydown", function(event) {
+//  if (event.key === "F12" || (event.ctrlKey && event.shiftKey && event.key === "I")) {
+//      event.preventDefault();
+//  }
+//});
+//
+//document.addEventListener("contextmenu", function(event) {
+//  event.preventDefault();
+//});

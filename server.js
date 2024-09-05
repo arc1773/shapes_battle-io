@@ -166,32 +166,6 @@ class Player {
 
   move() {
     //move
-
-    this.spdX = 0;
-    this.spdY = 0;
-
-    if (this.moving) {
-      var mouse_positon = this.mouse_position;
-      if (mouse_positon.x > this.screen_size.x * 0.75) {
-        mouse_positon.x = this.screen_size.x * 0.75;
-      } else if (mouse_positon.x < this.screen_size.x * 0.25) {
-        mouse_positon.x = this.screen_size.x * 0.25;
-      }
-      if (mouse_positon.y > this.screen_size.y * 0.75) {
-        mouse_positon.y = this.screen_size.y * 0.75;
-      } else if (mouse_positon.y < this.screen_size.y * 0.25) {
-        mouse_positon.y = this.screen_size.y * 0.25;
-      }
-
-      this.spdX =
-        this.parametrs.move_speed *
-        ((mouse_positon.x - this.screen_size.x / 2) / (this.screen_size.x / 4));
-      this.spdY =
-        this.parametrs.move_speed *
-        ((mouse_positon.y - this.screen_size.y / 2) / (this.screen_size.y / 4));
-    }
-
-    //bots' move
     if (this.bot) {
       let closestTarget = null;
       let minDistance = 500; // Maksymalna odległość, w której bot reaguje
@@ -246,9 +220,11 @@ class Player {
         this.spdY = 0;
       }
     }
-
-    this.position.x += this.spdX;
-    this.position.y += this.spdY;
+    
+    if (this.moving || this.bot) {
+      this.position.x += this.spdX;
+      this.position.y += this.spdY;
+    }
   }
   regeneration() {
     if (this.health < this.haracteristics.max_health) {
@@ -282,7 +258,7 @@ io.on("connection", (socket) => {
   SOCKETS[socket.id] = socket;
 
   socket.on("join_to_game", function (data) {
-    if (filling_up_servers[data.mode] < 15) {
+    if (filling_up_servers[data.mode] < 30) {
       add_player(socket.id, data.nickname, data.mode, false);
     }
   });
@@ -297,17 +273,9 @@ io.on("connection", (socket) => {
       players.get(socket.id).moving = !players.get(socket.id).moving;
     }
   });
-
-  socket.on("mouse_position", function (data) {
-    if (players.get(socket.id)) {
-      players.get(socket.id).mouse_position = data;
-    }
-  });
-
-  socket.on("change_canvas_size", function (data) {
-    if (players.get(socket.id)) {
-      players.get(socket.id).screen_size = data;
-    }
+  socket.on("spd", function (data) {
+    players.get(socket.id).spdX = data.x;
+    players.get(socket.id).spdY = data.y;
   });
 
   socket.on("verify-recaptcha", async (token) => {
@@ -646,27 +614,38 @@ function meals_update() {
 }
 
 function spawn_bots() {
-  if (players.size < 8) {
+  if (players.size < 20) {
     add_player(Math.random(), "niga1", "FFA1", true);
   }
 }
 
 //ought to be optimized
-function send_data(init_packs, update_placks, remove_packs) {
-  for (var i of players.keys()) {
-    let player = players.get(i);
+function send_data(init_packs, update_packs, remove_packs) {
+  for (const [id, player] of players.entries()) {
     if (!player.bot) {
-      let mode = player.mode;
+      const mode = player.mode;
+
+      const init_data = init_packs[mode];
+      const update_data = update_packs[mode];
+      const remove_data = remove_packs[mode];
+
+      // Sprawdź, czy trzeba wysłać dane inicjalizacyjne
       if (
-        (init_packs[mode].meals &&
-          Object.keys(init_packs[mode].meals).length !== 0) ||
-        (init_packs[mode].players &&
-          Object.keys(init_packs[mode].players).length !== 0)
+        (init_data.meals && Object.keys(init_data.meals).length > 0) ||
+        (init_data.players && Object.keys(init_data.players).length > 0)
       ) {
-        SOCKETS[i].emit("init", init_packs[mode]);
+        SOCKETS[id].emit("init", init_data);
       }
-      SOCKETS[i].emit("update", update_placks[mode]);
-      SOCKETS[i].emit("remove", remove_packs[mode]);
+
+      // Wyślij dane aktualizacji, jeśli istnieją
+      if (Object.keys(update_data).length > 0) {
+        SOCKETS[id].emit("update", update_data);
+      }
+
+      // Wyślij dane usunięcia, jeśli istnieją
+      if (Object.keys(remove_data).length > 0) {
+        SOCKETS[id].emit("remove", remove_data);
+      }
     }
   }
 }
@@ -677,22 +656,18 @@ setInterval(function () {
     spawn_bots();
     players_update();
 
-    var init_packs = {
-      FFA1: get_init_pack("FFA1"),
-      FFA2: get_init_pack("FFA2"),
-    };
+    const modes = ["FFA1", "FFA2"];
+    const init_packs = {};
+    const update_packs = {};
+    const remove_packs = {};
 
-    var update_placks = {
-      FFA1: get_update_pack("FFA1"),
-      FFA2: get_update_pack("FFA2"),
-    };
+    modes.forEach((mode) => {
+      init_packs[mode] = get_init_pack(mode);
+      update_packs[mode] = get_update_pack(mode);
+      remove_packs[mode] = get_remove_pack(mode);
+    });
 
-    var remove_packs = {
-      FFA1: get_remove_pack("FFA1"),
-      FFA2: get_remove_pack("FFA2"),
-    };
-
-    send_data(init_packs, update_placks, remove_packs);
+    send_data(init_packs, update_packs, remove_packs);
 
     meals_to_add = { FFA1: {}, FFA2: {} };
     meals_to_remove = { FFA1: [], FFA2: [] };
@@ -700,15 +675,16 @@ setInterval(function () {
     players_to_remove = { FFA1: [], FFA2: [] };
   }
 
-  filling_up_servers = { FFA1: 0, FFA2: 0 };
+  const filling_up_servers = { FFA1: 0, FFA2: 0 };
 
-  for (let i of players.keys()) {
-    if (players.get(i).mode == "FFA1") {
+  players.forEach((player) => {
+    if (player.mode === "FFA1") {
       filling_up_servers.FFA1++;
-    } else if (players.get(i).mode == "FFA2") {
+    } else if (player.mode === "FFA2") {
       filling_up_servers.FFA2++;
     }
-  }
+  });
+
   io.emit("filling_up_servers", filling_up_servers);
 }, 1000 / 15);
 
