@@ -7,18 +7,34 @@
 //shapes-battle-io.onrender.com site key: 6Lf5GS8qAAAAAJS54-8ATIYTIMzO8AO4kNUm6xc0
 //shapes-battle-io.onrender.com secret key: 6Lf5GS8qAAAAANvjUa9povmDhIPL-90CK-et_kw8
 
-
-
 // Listy z elementami, które będą tworzyć nicki
-const prefixes = ["Super", "Mega", "Ultra", "Hyper", "Crazy", "Epic", "Dark", "Light"];
-const suffixes = ["Hero", "Master", "Warrior", "Ninja", "Dragon", "Wolf", "Hunter", "Shadow"];
+const prefixes = [
+  "Super",
+  "Mega",
+  "Ultra",
+  "Hyper",
+  "Crazy",
+  "Epic",
+  "Dark",
+  "Light",
+];
+const suffixes = [
+  "Hero",
+  "Master",
+  "Warrior",
+  "Ninja",
+  "Dragon",
+  "Wolf",
+  "Hunter",
+  "Shadow",
+];
 
 function generateNickname() {
-    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]; // Losowanie prefiksu
-    const suffix = suffixes[Math.floor(Math.random() * suffixes.length)]; // Losowanie sufiksu
-    const number = Math.floor(Math.random() * 90) + 10; // Losowanie liczby od 10 do 99
+  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]; // Losowanie prefiksu
+  const suffix = suffixes[Math.floor(Math.random() * suffixes.length)]; // Losowanie sufiksu
+  const number = Math.floor(Math.random() * 90) + 10; // Losowanie liczby od 10 do 99
 
-    return `${prefix}${suffix}${number}`; // Składanie nicku
+  return `${prefix}${suffix}${number}`; // Składanie nicku
 }
 
 function generujPunktyPoligonu(x, y, size, liczbaKatow, katNachylenia) {
@@ -123,14 +139,6 @@ class Player {
       x: Math.random() * 10000,
       y: Math.random() * 10000,
     };
-    this.mouse_position = {
-      x: 250,
-      y: 250,
-    };
-    this.screen_size = {
-      x: 500,
-      y: 500,
-    };
     this.parametrs = {
       move_speed: 7, //move_speed
       size: 20, //health
@@ -167,15 +175,17 @@ class Player {
     this.bot = bot;
   }
   update() {
+    update_packs[this.mode].players[this.id] = {};
     this.move();
+    update_packs[this.mode].players[this.id].position = {
+      x: this.position.x,
+      y: this.position.y,
+    };
 
     this.regeneration();
 
     this.angle += this.parametrs.rotation_speed;
-
-    this.haracteristics.max_health = this.parametrs.size * 2.5;
-    this.haracteristics.damage = this.parametrs.number_of_angles / 10;
-    this.haracteristics.regeneration = this.parametrs.rotation_speed;
+    update_packs[this.mode].players[this.id].angle = this.angle;
   }
 
   move() {
@@ -246,6 +256,8 @@ class Player {
         this.health += this.haracteristics.regeneration;
         if (this.health > this.haracteristics.max_health) {
           this.health = this.haracteristics.max_health;
+        } else {
+          update_packs[this.mode].players[this.id].health = this.health;
         }
       }
     }
@@ -261,6 +273,7 @@ var players = new Map();
 var SOCKETS = {};
 //var players_data = {}; //123123:{...},
 var meals_data = {};
+var meals_data_count=0
 
 const SECRET_KEY = "6Lf5GS8qAAAAANvjUa9povmDhIPL-90CK-et_kw8";
 
@@ -369,23 +382,138 @@ function areSquaresColliding(square2, square1) {
   );
 }
 
+function players_check_colision_meal(player) {
+  for (var n in meals_data) {
+    var meal = meals_data[n];
+    if (meal.mode == player.mode) {
+      if (obliczOdleglosc(player.position, meal.position) < 100) {
+        if (
+          areSquaresColliding(
+            {
+              x: player.position.x - player.parametrs.size / 2,
+              y: player.position.y - player.parametrs.size / 2,
+              size: player.parametrs.size,
+            },
+            {
+              x: meal.position.x - 7 / 2,
+              y: meal.position.y - 7 / 2,
+              size: 7,
+            }
+          )
+        ) {
+          player.score += 1;
+          if (meals_data[n].type == "size") {
+            player.to_update_param.size += 1;
+            if (player.to_update_param.size >= 10) {
+              player.to_update_param.size = 0;
+              player.levels.size += 1;
+              player.parametrs.size = 1.5 * player.levels.size + 20;
+              player.haracteristics.max_health = player.parametrs.size * 2.5;
+            }
+          } else if (meals_data[n].type == "speed") {
+            player.to_update_param.move_speed += 1;
+            if (player.to_update_param.move_speed >= 10) {
+              player.to_update_param.move_speed = 0;
+              player.levels.move_speed += 1;
+              player.parametrs.move_speed = logFunction(
+                player.levels.move_speed,
+                3,
+                15
+              );
+            }
+          } else if (meals_data[n].type == "angles") {
+            player.to_update_param.number_of_angles += 1;
+            if (player.to_update_param.number_of_angles >= 10) {
+              player.to_update_param.number_of_angles = 0;
+              player.levels.number_of_angles += 1;
+              player.parametrs.number_of_angles =
+                player.levels.number_of_angles + 2;
+              player.haracteristics.damage =
+                player.parametrs.number_of_angles / 10;
+            }
+          } else if (meals_data[n].type == "rotation") {
+            player.to_update_param.rotation_speed += 1;
+            if (player.to_update_param.rotation_speed >= 10) {
+              player.to_update_param.rotation_speed = 0;
+              player.levels.rotation_speed += 1;
+              player.parametrs.rotation_speed =
+                player.levels.rotation_speed * 0.06;
+              player.haracteristics.regeneration =
+                player.parametrs.rotation_speed;
+            }
+          }
+          update_packs[player.mode].players[player.id].score = player.score;
+          update_packs[player.mode].players[player.id].to_update_param =
+            player.to_update_param;
+          update_packs[player.mode].players[player.id].levels = player.levels;
+          update_packs[player.mode].players[player.id].haracteristics =
+            player.haracteristics;
+
+          meals_to_remove[meals_data[n].mode].push(n);
+          meals_data_count--;
+          delete meals_data[n];
+        }
+      }
+    }
+  }
+}
+
+function players_check_colision_player(
+  player,
+  i,
+  liczbaGraczy,
+  graczeKlucze,
+  map_of_points_of_poligon_of_players,
+  points_of_poligon_of_the_player
+) {
+  for (let j = i + 1; j < liczbaGraczy; j++) {
+    var player2 = players.get(graczeKlucze[j]);
+    if (!players.get(graczeKlucze[i])) break;
+    if (!player2) continue;
+    if (player.mode == player2.mode) {
+      if (obliczOdleglosc(player.position, player2.position) < 100) {
+        if (!map_of_points_of_poligon_of_players.get(player2.id)) {
+          map_of_points_of_poligon_of_players.set(
+            player2.id,
+            generujPunktyPoligonu(
+              player2.position.x,
+              player2.position.y,
+              player2.parametrs.size,
+              player2.parametrs.number_of_angles,
+              player2.angle
+            )
+          );
+        }
+        var points_of_poligon_of_second_player =
+          map_of_points_of_poligon_of_players.get(player2.id);
+
+        if (
+          sprawdzKolizjePoligonow(
+            points_of_poligon_of_the_player,
+            points_of_poligon_of_second_player
+          )
+        ) {
+          player.coliding = true;
+          player2.coliding = true;
+
+          player.health -= player2.haracteristics.damage;
+          player2.health -= player.haracteristics.damage;
+          if (player2.health <= 0) {
+            player.score += player2.score / 2;
+            player_dead(graczeKlucze[j]);
+          }
+          if (player.health <= 0) {
+            player2.score += player.score / 2;
+            player_dead(graczeKlucze[i]);
+          }
+        }
+      }
+    }
+  }
+}
+
 function players_update() {
   var map_of_points_of_poligon_of_players = new Map();
-
-  //for (let p of players.keys()) {
-  //  let player = players.get(p);
-  //
-  //  map_of_points_of_poligon_of_players.set(
-  //    player.id,
-  //    generujPunktyPoligonu(
-  //      player.position.x,
-  //      player.position.y,
-  //      player.parametrs.size,
-  //      player.parametrs.number_of_angles,
-  //      player.angle
-  //    )
-  //  );
-  //}
 
   for (let p of players.keys()) {
     let player = players.get(p);
@@ -400,7 +528,6 @@ function players_update() {
 
     if (!player) continue;
 
-    //player.update();
     //colision
 
     if (!map_of_points_of_poligon_of_players.get(player.id)) {
@@ -419,118 +546,25 @@ function players_update() {
       map_of_points_of_poligon_of_players.get(player.id);
 
     //with meal
-    for (var n in meals_data) {
-      var meal = meals_data[n];
-      if (meal.mode == player.mode) {
-        if (obliczOdleglosc(player.position, meal.position) < 100) {
-          if (
-            areSquaresColliding(
-              {
-                x: player.position.x - player.parametrs.size / 2,
-                y: player.position.y - player.parametrs.size / 2,
-                size: player.parametrs.size,
-              },
-              {
-                x: meal.position.x - 7 / 2,
-                y: meal.position.y - 7 / 2,
-                size: 7,
-              }
-            )
-          ) {
-            player.score += 1;
-            if (meals_data[n].type == "size") {
-              player.to_update_param.size += 1;
-              if (player.to_update_param.size >= 10) {
-                player.to_update_param.size = 0;
-                player.levels.size += 1;
-                player.parametrs.size = 1.5 * player.levels.size + 20;
-              }
-            } else if (meals_data[n].type == "speed") {
-              player.to_update_param.move_speed += 1;
-              if (player.to_update_param.move_speed >= 10) {
-                player.to_update_param.move_speed = 0;
-                player.levels.move_speed += 1;
-                player.parametrs.move_speed = logFunction(
-                  player.levels.move_speed,
-                  3,
-                  15
-                );
-              }
-            } else if (meals_data[n].type == "angles") {
-              player.to_update_param.number_of_angles += 1;
-              if (player.to_update_param.number_of_angles >= 10) {
-                player.to_update_param.number_of_angles = 0;
-                player.levels.number_of_angles += 1;
-                player.parametrs.number_of_angles =
-                  player.levels.number_of_angles + 2;
-              }
-            } else if (meals_data[n].type == "rotation") {
-              player.to_update_param.rotation_speed += 1;
-              if (player.to_update_param.rotation_speed >= 10) {
-                player.to_update_param.rotation_speed = 0;
-                player.levels.rotation_speed += 1;
-                player.parametrs.rotation_speed =
-                  player.levels.rotation_speed * 0.06;
-              }
-            }
-            meals_to_remove[meals_data[n].mode].push(n);
-            delete meals_data[n];
-          }
-        }
-      }
-    }
+    players_check_colision_meal(player);
     //with players
+    players_check_colision_player(
+      player,
+      i,
+      liczbaGraczy,
+      graczeKlucze,
+      map_of_points_of_poligon_of_players,
+      points_of_poligon_of_the_player
+    );
 
-    for (let j = i + 1; j < liczbaGraczy; j++) {
-      var player2 = players.get(graczeKlucze[j]);
-      if (!players.get(graczeKlucze[i])) break;
-      if (!player2) continue;
-      if (player.mode == player2.mode) {
-        if (obliczOdleglosc(player.position, player2.position) < 100) {
-          if (!map_of_points_of_poligon_of_players.get(player2.id)) {
-            map_of_points_of_poligon_of_players.set(
-              player2.id,
-              generujPunktyPoligonu(
-                player2.position.x,
-                player2.position.y,
-                player2.parametrs.size,
-                player2.parametrs.number_of_angles,
-                player2.angle
-              )
-            );
-          }
-          var points_of_poligon_of_second_player =
-            map_of_points_of_poligon_of_players.get(player2.id);
-
-          if (
-            sprawdzKolizjePoligonow(
-              points_of_poligon_of_the_player,
-              points_of_poligon_of_second_player
-            )
-          ) {
-            player.coliding = true;
-            player2.coliding = true;
-
-            player.health -= player2.haracteristics.damage;
-            player2.health -= player.haracteristics.damage;
-            if (player2.health <= 0) {
-              player.score += player2.score / 2;
-              player_dead(graczeKlucze[j]);
-            }
-            if (player.health <= 0) {
-              player2.score += player.score / 2;
-              player_dead(graczeKlucze[i]);
-            }
-          }
-        }
-      }
-    }
     for (let p of players.keys()) {
       if (player.coliding) {
         player.parametrs.color = "red";
+        update_packs[player.mode].players[player.id].health = player.health;
       } else {
         player.parametrs.color = "black";
       }
+      update_packs[player.mode].players[player.id].parametrs = player.parametrs;
     }
 
     player.coliding = false;
@@ -585,26 +619,6 @@ function get_init_pack(mode) {
   return pack;
 }
 
-function get_update_pack(mode) {
-  var pack = { players: {} };
-  for (var i of players.keys()) {
-    var player = players.get(i);
-    if (player.mode == mode) {
-      pack.players[i] = {
-        position: player.position,
-        parametrs: player.parametrs,
-        to_update_param: player.to_update_param,
-        angle: player.angle,
-        levels: player.levels,
-        haracteristics: player.haracteristics,
-        health: player.health,
-        score: player.score,
-      };
-    }
-  }
-  return pack;
-}
-
 function get_remove_pack(mode) {
   var pack = {};
   pack.meals = meals_to_remove[mode];
@@ -653,9 +667,9 @@ function make_new_meal() {
 }
 
 function meals_update() {
-  if (Object.keys(meals_data).length < 3000) {
+  if (meals_data_count < 3000) {
     let new_meal = make_new_meal();
-
+    meals_data_count++;
     meals_data[new_meal.id] = new_meal.data;
     meals_to_add[new_meal.data.mode][new_meal.id] = meals_data[new_meal.id];
   }
@@ -698,20 +712,32 @@ function send_data(init_packs, update_packs, remove_packs) {
   }
 }
 
+const modes = ["FFA1", "FFA2"];
+
+var init_packs = {};
+var update_packs = { FFA1: { players: {} }, FFA2: { players: {} } };
+var remove_packs = {};
+
 setInterval(function () {
+  init_packs = {};
+  remove_packs = {};
   if (sone_online) {
+    modes.forEach((mode) => {
+      update_packs[mode].players = {};
+      //for (var i of players.keys()) {
+      //  if(players.get(i).mode==mode){
+      //    update_packs[mode].players[i] = {};
+      //  }
+      //
+      //}
+    });
     meals_update();
     spawn_bots();
     players_update();
 
-    const modes = ["FFA1", "FFA2"];
-    const init_packs = {};
-    const update_packs = {};
-    const remove_packs = {};
-
     modes.forEach((mode) => {
       init_packs[mode] = get_init_pack(mode);
-      update_packs[mode] = get_update_pack(mode);
+      //update_packs[mode] = get_update_pack(mode);
       remove_packs[mode] = get_remove_pack(mode);
     });
 
