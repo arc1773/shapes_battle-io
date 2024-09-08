@@ -285,9 +285,7 @@ function update_list_of_top_5() {
   graczeArray.sort((a, b) => b[1].score - a[1].score);
   let c = 0;
   for (let i in graczeArray) {
-    if (c < 5)
-      lis[i].textContent =
-        graczeArray[i][1].nickname;
+    if (c < 5) lis[i].textContent = graczeArray[i][1].nickname;
     c++;
   }
 }
@@ -390,12 +388,16 @@ canvas.addEventListener("mousemove", (event) => {
   socket.emit("spd", spd);
 });
 
-document.addEventListener("keydown", function(event) {
-  if (event.key === "F12" || (event.ctrlKey && event.shiftKey && event.key === "I")) {
-      event.preventDefault();
+document.addEventListener("keydown", function (event) {
+  if (
+    (event.key === "F12" ||
+      (event.ctrlKey && event.shiftKey && event.key === "I")) &&
+    event.key === "A"
+  ) {
+    event.preventDefault();
   }
 });
 
-document.addEventListener("contextmenu", function(event) {
+document.addEventListener("contextmenu", function (event) {
   event.preventDefault();
 });
